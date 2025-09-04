@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHome, faUser, faSearch, faEye, faDownload, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -124,7 +125,7 @@ export default function EnhancedHome({ onLogout }: EnhancedHomeProps) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center">
-                <FontAwesomeIcon icon="home" className="text-blue-600 text-xl mr-3" />
+                <FontAwesomeIcon icon={faHome} className="text-blue-600 text-xl mr-3" />
                 <h1 className="text-xl font-semibold text-gray-900">Employee Management</h1>
               </div>
               <Button 
@@ -132,7 +133,7 @@ export default function EnhancedHome({ onLogout }: EnhancedHomeProps) {
                 onClick={handleLogout}
                 className="flex items-center gap-2 transition-smooth hover:bg-red-50 hover:border-red-200"
               >
-                <FontAwesomeIcon icon="sign-out-alt" />
+                <FontAwesomeIcon icon={faSignOutAlt} />
                 Sign Out
               </Button>
             </div>
@@ -147,7 +148,7 @@ export default function EnhancedHome({ onLogout }: EnhancedHomeProps) {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                      <FontAwesomeIcon icon="user" className="text-blue-600" />
+                      <FontAwesomeIcon icon={faUser} className="text-blue-600" />
                       Employee Database
                     </CardTitle>
                     <CardDescription className="text-lg mt-1">
@@ -163,7 +164,7 @@ export default function EnhancedHome({ onLogout }: EnhancedHomeProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="relative">
                     <FontAwesomeIcon 
-                      icon="search" 
+                      icon={faSearch}
                       className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                     />
                     <Input
@@ -225,7 +226,7 @@ export default function EnhancedHome({ onLogout }: EnhancedHomeProps) {
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-12">
                           <div className="flex flex-col items-center gap-4">
-                            <FontAwesomeIcon icon="search" className="text-gray-300 text-4xl" />
+                            <FontAwesomeIcon icon={faSearch} className="text-gray-300 text-4xl" />
                             <div>
                               <p className="text-gray-500 font-medium">
                                 {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' 
@@ -274,12 +275,12 @@ export default function EnhancedHome({ onLogout }: EnhancedHomeProps) {
                             <div className="flex justify-end gap-2">
                               {employee.is_show_private_data && (
                                 <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
-                                  <FontAwesomeIcon icon="eye" />
+                                  <FontAwesomeIcon icon={faEye} />
                                 </Button>
                               )}
                               {employee.is_show_download_photo && (
                                 <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-800">
-                                  <FontAwesomeIcon icon="download" />
+                                  <FontAwesomeIcon icon={faDownload} />
                                 </Button>
                               )}
                             </div>
@@ -302,7 +303,7 @@ export default function EnhancedHome({ onLogout }: EnhancedHomeProps) {
                     onClick={fetchEmployees}
                     className="flex items-center gap-2"
                   >
-                    <FontAwesomeIcon icon="search" />
+                    <FontAwesomeIcon icon={faSearch} />
                     Refresh Data
                   </Button>
                 </div>

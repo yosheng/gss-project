@@ -25,7 +25,6 @@ export default function Login({onLoginSuccess}: LoginProps) {
         setError('');
 
         try {
-            console.log('所有環境變量:', process.env);
             const {data, error} = await signInWithEnvCredentials(account, password);
 
             if (error) {

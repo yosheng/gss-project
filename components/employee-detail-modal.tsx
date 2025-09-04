@@ -1,6 +1,7 @@
 'use client';
 
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faUser, faEyeSlash, faEye, faDownload} from '@fortawesome/free-solid-svg-icons';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {Badge} from '@/components/ui/badge';
 import {Separator} from '@/components/ui/separator';
@@ -21,26 +22,26 @@ export default function EmployeeDetailModal({employee, isOpen, onClose}: Employe
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <FontAwesomeIcon icon="user" className="text-blue-600"/>
+                        <FontAwesomeIcon icon={faUser} className="text-blue-600"/>
                         Employee Details
                     </DialogTitle>
                     <DialogDescription>
                         Detailed information for {employee.c_name || employee.e_name}
-                        <div className="flex items-center gap-4">
-                            <div
-                                className="relative overflow-hidden rounded-full hover:scale-110 transition-transform duration-300">
-                                <Avatar className="w-16 h-16">
-                                    <AvatarImage
-                                        src={`https://assistant.gss.com.tw/QuickSearchApi/image/renderemployeeimage/${employee.emp_id}/default`}
-                                        alt={`${employee.c_name || employee.e_name}的照片`}
-                                    />
-                                    <AvatarFallback>
-                                        {(employee.c_name || employee.e_name)?.charAt(0) || 'U'}
-                                    </AvatarFallback>
-                                </Avatar>
-                            </div>
-                        </div>
                     </DialogDescription>
+                    <div className="flex items-center justify-center">
+                        <div
+                            className="relative overflow-hidden rounded-full hover:scale-110 transition-transform duration-300">
+                            <Avatar className="w-100 h-100">
+                                <AvatarImage
+                                    src={`https://assistant.gss.com.tw/QuickSearchApi/image/renderemployeeimage/${employee.encrypt_emp_id}/default`}
+                                    alt={`${employee.c_name || employee.e_name}的照片`}
+                                />
+                                <AvatarFallback>
+                                    {(employee.c_name || employee.e_name)?.charAt(0) || 'U'}
+                                </AvatarFallback>
+                            </Avatar>
+                        </div>
+                    </div>
                 </DialogHeader>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -114,14 +115,14 @@ export default function EmployeeDetailModal({employee, isOpen, onClose}: Employe
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                     <FontAwesomeIcon
-                                        icon={employee.is_show_private_data ? "eye" : "eye-slash"}
+                                        icon={employee.is_show_private_data ? faEye : faEyeSlash}
                                         className={employee.is_show_private_data ? "text-green-600" : "text-gray-400"}
                                     />
                                     <span className="text-sm">Show Private Data</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <FontAwesomeIcon
-                                        icon={employee.is_show_download_photo ? "download" : "eye-slash"}
+                                        icon={employee.is_show_download_photo ? faDownload : faEyeSlash}
                                         className={employee.is_show_download_photo ? "text-green-600" : "text-gray-400"}
                                     />
                                     <span className="text-sm">Allow Photo Download</span>

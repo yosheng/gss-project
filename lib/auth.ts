@@ -17,7 +17,6 @@ export async function signInWithEnvCredentials(username: string, password: strin
     // 从环境变量中读取用户名和密码
     const envUsername = process.env.NEXT_PUBLIC_USERNAME;
     const envPassword = process.env.NEXT_PUBLIC_PASSWORD;
-    debugger
     // 检查用户名和密码是否匹配环境变量中的值
     if (username === envUsername && password === envPassword) {
         // 如果匹配，返回成功状态，模拟登录成功
