@@ -31,7 +31,7 @@ export default function EmployeeDetailModal({employee, isOpen, onClose}: Employe
                     <div className="flex items-center justify-center">
                         <div
                             className="relative overflow-hidden rounded-full hover:scale-110 transition-transform duration-300">
-                            <Avatar className="w-100 h-100">
+                            <Avatar className="w-64 h-64">
                                 <AvatarImage
                                     src={`https://assistant.gss.com.tw/QuickSearchApi/image/renderemployeeimage/${employee.encrypt_emp_id}/default`}
                                     alt={`${employee.c_name || employee.e_name}的照片`}
