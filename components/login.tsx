@@ -7,10 +7,11 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Label} from '@/components/ui/label';
-import {signInWithEmail, signInWithEnvCredentials} from '@/lib/auth';
+import { signInWithEmail, signInWithEnvCredentials } from '@/lib/auth';
+import { User } from '@supabase/supabase-js';
 
 interface LoginProps {
-    onLoginSuccess: () => void;
+    onLoginSuccess: (user: User) => void;
 }
 
 export default function Login({onLoginSuccess}: LoginProps) {
@@ -25,12 +26,12 @@ export default function Login({onLoginSuccess}: LoginProps) {
         setError('');
 
         try {
-            const {data, error} = await signInWithEnvCredentials(account, password);
+            const {data, error}: any = await signInWithEnvCredentials(account, password);
 
             if (error) {
                 setError(error.message);
             } else if (data.user) {
-                onLoginSuccess();
+                onLoginSuccess(data.user as User);
             }
         } catch (err) {
             setError('An unexpected error occurred');

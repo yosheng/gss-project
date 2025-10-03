@@ -9,12 +9,14 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
+  setAuth: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   error: null,
+  setAuth: () => {},
 });
 
 export const useAuth = () => {
@@ -122,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, error }}>
+    <AuthContext.Provider value={{ user, loading, error, setAuth: setUser }}>
       {children}
     </AuthContext.Provider>
   );
