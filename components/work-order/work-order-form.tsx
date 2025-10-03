@@ -7,6 +7,14 @@ import { workOrderSchema, WorkOrderFormData } from '@/lib/schemas/work-order';
 import { WorkOrderClient } from '@/lib/work-order-client';
 import { WorkOrderError, SecureErrorLogger } from '@/lib/errors';
 import { useAuth } from '@/components/auth-provider';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface WorkOrderFormProps {
   onSubmitSuccess?: (message: string) => void;
@@ -16,6 +24,19 @@ interface WorkOrderFormProps {
 const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
+  const [authToken, setAuthToken] = useState('');
+  const [savedToken, setSavedToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('gss-api-auth-token');
+    setSavedToken(token);
+  }, []);
+
+  const handleSaveToken = () => {
+    localStorage.setItem('gss-api-auth-token', authToken);
+    setSavedToken(authToken);
+    alert('Authorization Token 已儲存！');
+  };
   
   // Memoize form configuration to prevent unnecessary re-renders
   const formConfig = useMemo(() => ({
@@ -55,68 +76,101 @@ const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitErr
 
   const onSubmit = useCallback(async (data: WorkOrderFormData) => {
     setIsSubmitting(true);
-    
-    try {
-      // Client-side validation
-      if (!WorkOrderClient.validateFormData(data)) {
-        throw new WorkOrderError(
-          '表單資料驗證失敗，請檢查輸入內容',
-          'VALIDATION_ERROR',
-          400
-        );
-      }
 
-      // Log submission attempt (without sensitive data)
-      console.log('Work order submission initiated', {
-        timestamp: new Date().toISOString(),
-        userId: user?.id ? 'authenticated' : 'anonymous',
-        hasDescription: !!data.description,
-        hasWorkDate: !!data.workDate
+    const token = localStorage.getItem('gss-api-auth-token');
+    if (!token) {
+      onSubmitError?.('Authorization Token 未設定，請先在上方設定中儲存 Token。');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const API_CONFIG = {
+        url: 'https://assistant.gss.com.tw/AMApi/AMMaintainWeb/InsertData/AMMaintainWeb',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'accept-language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'origin': 'https://assistant.gss.com.tw',
+            'priority': 'u=1, i',
+            'referer': 'https://assistant.gss.com.tw/am/',
+            'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin'
+        }
+    };
+
+    const FIXED_PAYLOAD = {
+        actNo: null,
+        actTypeId: "Be",
+        custNo: "GSS",
+        caseContNo: "O202502047",
+        prdPjtNo: "內部專案-2025020600007 - Vital  Casebridge產品計畫書_2025年",
+        ttlHours: 8,
+        isPrnToCust: "Be099",
+        attachFileName: null,
+        isAttachFile: "00200",
+        isPrdOrPjt: "J",
+        message: null,
+        status: false,
+        favoriteContOppId: "7016",
+        suppDeptItems: "U236"
+    };
+
+    const formatDateTime = (date: string, timeStr: string) => {
+        return date + timeStr;
+    };
+
+    try {
+      const payload = {
+          ...FIXED_PAYLOAD,
+          sdateTime: formatDateTime(data.workDate, 'T00:30:00.000Z'),
+          edateTime: formatDateTime(data.workDate, 'T09:30:00.000Z'),
+          description: data.description.trim()
+      };
+
+      const response = await fetch(API_CONFIG.url, {
+          method: 'POST',
+          headers: API_CONFIG.headers,
+          body: JSON.stringify(payload),
+          mode: 'cors'
       });
-      
-      const response = await WorkOrderClient.submitWorkOrder(data);
-      
-      if (response.success) {
-        onSubmitSuccess?.(response.message || '工作單提交成功！');
-        
-        // Reset form after 2 seconds
+
+      if (response.ok) {
+        const responseData = await response.json();
+        onSubmitSuccess?.(responseData.message || '工作單提交成功！');
         setTimeout(() => {
-          reset({
+          reset({ 
             workDate: new Date().toISOString().split('T')[0],
-            description: ''
+            description: '' 
           });
-          // Reset textarea height
           const textarea = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
           if (textarea) {
             textarea.style.height = 'auto';
           }
         }, 2000);
+      } else {
+        const errorText = await response.text();
+        throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
       }
     } catch (error) {
-      // Secure error handling
-      if (error instanceof WorkOrderError) {
-        // Use safe error message for user display
-        const safeMessage = error.getSafeMessage();
-        onSubmitError?.(safeMessage);
-        
-        // Log error securely
-        SecureErrorLogger.logError(error, 'WorkOrderForm.onSubmit');
-      } else {
-        // Handle unexpected errors
-        const unknownError = new WorkOrderError(
-          '系統發生未預期錯誤，請稍後再試',
-          'UNKNOWN_ERROR',
-          500,
-          error as Error
-        );
-        
-        SecureErrorLogger.logError(unknownError, 'WorkOrderForm.onSubmit');
-        onSubmitError?.(unknownError.getSafeMessage());
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      const unknownError = new WorkOrderError(
+        `提交失敗: ${errorMessage}`,
+        'UNKNOWN_ERROR',
+        500,
+        error as Error
+      );
+      SecureErrorLogger.logError(unknownError, 'WorkOrderForm.onSubmit');
+      onSubmitError?.(unknownError.getSafeMessage());
     } finally {
       setIsSubmitting(false);
     }
-  }, [user?.id, onSubmitSuccess, onSubmitError, reset]);
+  }, [onSubmitSuccess, onSubmitError, reset]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-0">
@@ -127,6 +181,33 @@ const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitErr
         <p className="text-center text-[var(--color-text-secondary)] mb-6 sm:mb-8 text-sm sm:text-[var(--font-size-md)]">
           請填寫以下資訊以提交維護工作單
         </p>
+
+        <Collapsible className="mb-6">
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full">
+              顯示/隱藏 Authorization Token 設定
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4 p-4 border rounded-md">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="authToken">Authorization Token (Bearer)</Label>
+                <Input
+                  id="authToken"
+                  type="password"
+                  value={authToken}
+                  onChange={(e) => setAuthToken(e.target.value)}
+                  placeholder="貼上您的 Bearer Token"
+                  className="mt-1"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  目前狀態: {savedToken ? '已儲存' : '未設定'}
+                </p>
+              </div>
+              <Button onClick={handleSaveToken} className="w-full">儲存 Token</Button>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         <form onSubmit={handleSubmit(onSubmit)} className="w-full">
           {/* Work Date Field */}
