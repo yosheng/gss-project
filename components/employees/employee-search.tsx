@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ interface EmployeeSearchProps {
   statuses: string[];
 }
 
-export default function EmployeeSearch({
+const EmployeeSearch = memo(function EmployeeSearch({
   searchTerm,
   onSearchChange,
   statusFilter,
@@ -26,8 +27,19 @@ export default function EmployeeSearch({
   departments,
   statuses,
 }: EmployeeSearchProps) {
+  // Memoize filtered arrays to prevent unnecessary re-renders
+  const memoizedDepartments = useMemo(() => 
+    departments.filter((dept): dept is string => dept !== null),
+    [departments]
+  );
+  
+  const memoizedStatuses = useMemo(() => 
+    statuses.filter((status): status is string => status !== null),
+    [statuses]
+  );
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
       <div className="relative">
         <FontAwesomeIcon
           icon={faSearch}
@@ -37,41 +49,39 @@ export default function EmployeeSearch({
           placeholder="搜尋員工..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 focus-enhanced"
+          className="pl-10 focus-enhanced min-h-[44px] touch-manipulation"
         />
       </div>
 
       <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-        <SelectTrigger>
+        <SelectTrigger className="min-h-[44px] touch-manipulation">
           <SelectValue placeholder="依狀態篩選" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">所有狀態</SelectItem>
-          {statuses
-            .filter((status): status is string => status !== null)
-            .map(status => (
-              <SelectItem key={status} value={status}>
-                {status}
-              </SelectItem>
-            ))}
+          {memoizedStatuses.map(status => (
+            <SelectItem key={status} value={status}>
+              {status}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
       <Select value={departmentFilter} onValueChange={onDepartmentFilterChange}>
-        <SelectTrigger>
+        <SelectTrigger className="min-h-[44px] touch-manipulation">
           <SelectValue placeholder="依部門篩選" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">所有部門</SelectItem>
-          {departments
-            .filter((dept): dept is string => dept !== null)
-            .map(dept => (
-              <SelectItem key={dept} value={dept}>
-                {dept}
-              </SelectItem>
-            ))}
+          {memoizedDepartments.map(dept => (
+            <SelectItem key={dept} value={dept}>
+              {dept}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>
   );
-}
+});
+
+export default EmployeeSearch;

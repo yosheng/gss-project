@@ -1,6 +1,8 @@
-import { ComponentType } from 'react';
-import WorkOrderPage from '@/pages/work-order-page';
-import EmployeesPage from '@/pages/employees-page';
+import { ComponentType, lazy } from 'react';
+
+// Lazy load page components for better performance
+const WorkOrderPage = lazy(() => import('@/pages/work-order-page'));
+const EmployeesPage = lazy(() => import('@/pages/employees-page'));
 
 export const ROUTES = {
   WORK_ORDER: 'work-order',

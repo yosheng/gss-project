@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { workOrderSchema, WorkOrderFormData } from '@/lib/schemas/work-order';
@@ -13,9 +13,18 @@ interface WorkOrderFormProps {
   onSubmitError?: (error: string) => void;
 }
 
-export default function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOrderFormProps) {
+const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
+  
+  // Memoize form configuration to prevent unnecessary re-renders
+  const formConfig = useMemo(() => ({
+    resolver: zodResolver(workOrderSchema),
+    defaultValues: {
+      workDate: '',
+      description: ''
+    }
+  }), []);
   
   const {
     register,
@@ -24,13 +33,7 @@ export default function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOr
     reset,
     clearErrors,
     setValue
-  } = useForm<WorkOrderFormData>({
-    resolver: zodResolver(workOrderSchema),
-    defaultValues: {
-      workDate: '',
-      description: ''
-    }
-  });
+  } = useForm<WorkOrderFormData>(formConfig);
 
   // Set default date to today
   useEffect(() => {
@@ -39,19 +42,18 @@ export default function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOr
     setValue('workDate', defaultDate);
   }, [setValue]);
 
-  // Auto-resize textarea
-  const handleTextareaResize = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+  // Memoize event handlers to prevent unnecessary re-renders
+  const handleTextareaResize = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const textarea = event.target;
     textarea.style.height = 'auto';
     textarea.style.height = Math.max(100, textarea.scrollHeight) + 'px';
-  };
+  }, []);
 
-  // Clear errors on input change
-  const handleInputChange = () => {
+  const handleInputChange = useCallback(() => {
     clearErrors();
-  };
+  }, [clearErrors]);
 
-  const onSubmit = async (data: WorkOrderFormData) => {
+  const onSubmit = useCallback(async (data: WorkOrderFormData) => {
     setIsSubmitting(true);
     
     try {
@@ -114,24 +116,24 @@ export default function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOr
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [user?.id, onSubmitSuccess, onSubmitError, reset]);
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-[var(--color-surface)] border border-[var(--color-card-border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] p-8">
-        <h1 className="text-[var(--font-size-4xl)] font-[var(--font-weight-semibold)] text-center mb-2 text-[var(--color-text)]">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-0">
+      <div className="bg-[var(--color-surface)] border border-[var(--color-card-border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] p-4 sm:p-6 lg:p-8">
+        <h1 className="text-2xl sm:text-3xl lg:text-[var(--font-size-4xl)] font-[var(--font-weight-semibold)] text-center mb-2 text-[var(--color-text)]">
           AM 維護工作單提交
         </h1>
-        <p className="text-center text-[var(--color-text-secondary)] mb-8 text-[var(--font-size-md)]">
+        <p className="text-center text-[var(--color-text-secondary)] mb-6 sm:mb-8 text-sm sm:text-[var(--font-size-md)]">
           請填寫以下資訊以提交維護工作單
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="w-full">
           {/* Work Date Field */}
-          <div className="mb-5 relative">
+          <div className="mb-4 sm:mb-5 relative">
             <label 
               htmlFor="workDate" 
-              className="block mb-2 font-[var(--font-weight-medium)] text-[var(--font-size-md)] text-[var(--color-text)]"
+              className="block mb-2 font-[var(--font-weight-medium)] text-sm sm:text-[var(--font-size-md)] text-[var(--color-text)]"
             >
               工作日期
             </label>
@@ -139,7 +141,7 @@ export default function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOr
               type="date"
               id="workDate"
               {...register('workDate', { onChange: handleInputChange })}
-              className="w-full px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-base)] text-[var(--font-size-md)] text-[var(--color-text)] bg-[var(--color-surface)] transition-all duration-[var(--duration-fast)] ease-[var(--ease-standard)] outline-none focus:border-[var(--color-primary)] focus:shadow-[var(--focus-ring)] cursor-pointer"
+              className="w-full px-3 sm:px-4 py-3 sm:py-3 border border-[var(--color-border)] rounded-[var(--radius-base)] text-sm sm:text-[var(--font-size-md)] text-[var(--color-text)] bg-[var(--color-surface)] transition-all duration-[var(--duration-fast)] ease-[var(--ease-standard)] outline-none focus:border-[var(--color-primary)] focus:shadow-[var(--focus-ring)] cursor-pointer touch-manipulation"
             />
             {errors.workDate && (
               <div className="text-[var(--color-error)] text-[var(--font-size-sm)] mt-1 opacity-100 transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-standard)]">
@@ -149,10 +151,10 @@ export default function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOr
           </div>
 
           {/* Description Field */}
-          <div className="mb-5 relative">
+          <div className="mb-4 sm:mb-5 relative">
             <label 
               htmlFor="description" 
-              className="block mb-2 font-[var(--font-weight-medium)] text-[var(--font-size-md)] text-[var(--color-text)]"
+              className="block mb-2 font-[var(--font-weight-medium)] text-sm sm:text-[var(--font-size-md)] text-[var(--color-text)]"
             >
               工作描述
             </label>
@@ -166,7 +168,7 @@ export default function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOr
                   handleTextareaResize(e);
                 }
               })}
-              className="w-full px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-base)] text-[var(--font-size-md)] text-[var(--color-text)] bg-[var(--color-surface)] transition-all duration-[var(--duration-fast)] ease-[var(--ease-standard)] outline-none focus:border-[var(--color-primary)] focus:shadow-[var(--focus-ring)] resize-vertical min-h-[100px] font-[var(--font-family-base)] leading-[var(--line-height-normal)]"
+              className="w-full px-3 sm:px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-base)] text-sm sm:text-[var(--font-size-md)] text-[var(--color-text)] bg-[var(--color-surface)] transition-all duration-[var(--duration-fast)] ease-[var(--ease-standard)] outline-none focus:border-[var(--color-primary)] focus:shadow-[var(--focus-ring)] resize-vertical min-h-[100px] sm:min-h-[120px] font-[var(--font-family-base)] leading-[var(--line-height-normal)] touch-manipulation"
             />
             {errors.description && (
               <div className="text-[var(--color-error)] text-[var(--font-size-sm)] mt-1 opacity-100 transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-standard)]">
@@ -179,7 +181,7 @@ export default function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOr
           <button
             type="submit"
             disabled={isSubmitting}
-            className="relative w-full flex items-center justify-center px-4 py-3 bg-[var(--color-primary)] text-[var(--color-btn-primary-text)] rounded-[var(--radius-base)] text-[var(--font-size-base)] font-medium leading-6 cursor-pointer transition-all duration-[var(--duration-normal)] ease-[var(--ease-standard)] border-none hover:bg-[var(--color-primary-hover)] active:bg-[var(--color-primary-active)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
+            className="relative w-full flex items-center justify-center px-4 py-3 sm:py-4 bg-[var(--color-primary)] text-[var(--color-btn-primary-text)] rounded-[var(--radius-base)] text-sm sm:text-[var(--font-size-base)] font-medium leading-6 cursor-pointer transition-all duration-[var(--duration-normal)] ease-[var(--ease-standard)] border-none hover:bg-[var(--color-primary-hover)] active:bg-[var(--color-primary-active)] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden touch-manipulation min-h-[48px]"
           >
             <span className={`transition-opacity duration-[var(--duration-fast)] ${isSubmitting ? 'opacity-0' : 'opacity-100'}`}>
               提交工作單
@@ -194,4 +196,6 @@ export default function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOr
       </div>
     </div>
   );
-}
+});
+
+export default WorkOrderForm;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, memo, useMemo } from 'react';
 
 interface WorkOrderResponseProps {
   message: string;
@@ -10,7 +10,7 @@ interface WorkOrderResponseProps {
   autoHideDelay?: number;
 }
 
-export default function WorkOrderResponse({ 
+const WorkOrderResponse = memo(function WorkOrderResponse({ 
   message, 
   type, 
   onClose, 
@@ -28,14 +28,19 @@ export default function WorkOrderResponse({
     }
   }, [autoHide, type, autoHideDelay, onClose]);
 
-  const baseClasses = "mt-6 max-w-2xl mx-auto p-4 rounded-[var(--radius-base)] text-center font-[var(--font-weight-medium)] transition-all duration-[var(--duration-normal)] ease-[var(--ease-standard)]";
-  
-  const typeClasses = type === 'success'
-    ? 'bg-[rgba(var(--color-success-rgb),var(--status-bg-opacity))] text-[var(--color-success)] border border-[rgba(var(--color-success-rgb),var(--status-border-opacity))]'
-    : 'bg-[rgba(var(--color-error-rgb),var(--status-bg-opacity))] text-[var(--color-error)] border border-[rgba(var(--color-error-rgb),var(--status-border-opacity))]';
+  // Memoize classes to prevent unnecessary recalculations
+  const classes = useMemo(() => {
+    const baseClasses = "mt-6 max-w-2xl mx-auto p-4 rounded-[var(--radius-base)] text-center font-[var(--font-weight-medium)] transition-all duration-[var(--duration-normal)] ease-[var(--ease-standard)]";
+    
+    const typeClasses = type === 'success'
+      ? 'bg-[rgba(var(--color-success-rgb),var(--status-bg-opacity))] text-[var(--color-success)] border border-[rgba(var(--color-success-rgb),var(--status-border-opacity))]'
+      : 'bg-[rgba(var(--color-error-rgb),var(--status-bg-opacity))] text-[var(--color-error)] border border-[rgba(var(--color-error-rgb),var(--status-border-opacity))]';
+    
+    return `${baseClasses} ${typeClasses}`;
+  }, [type]);
 
   return (
-    <div className={`${baseClasses} ${typeClasses}`}>
+    <div className={classes}>
       <div className="flex items-center justify-between">
         <span className="flex-1">{message}</span>
         <button
@@ -61,4 +66,6 @@ export default function WorkOrderResponse({
       </div>
     </div>
   );
-}
+});
+
+export default WorkOrderResponse;

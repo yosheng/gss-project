@@ -7,10 +7,12 @@
 
 .employee-card {
   transition: all 0.2s ease-in-out;
+  will-change: transform, box-shadow;
+  transform: translateZ(0); /* GPU acceleration */
 }
 
 .employee-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) translateZ(0);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
@@ -64,6 +66,65 @@
   .table-responsive th,
   .table-responsive td {
     padding: 0.5rem 0.25rem;
+  }
+}
+
+/* Touch-friendly interactions */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* GPU acceleration for animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize repaints */
+.contain-layout {
+  contain: layout;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  /* Ensure minimum touch target size */
+  button, 
+  input, 
+  select, 
+  textarea,
+  [role="button"] {
+    min-height: 44px;
+  }
+  
+  /* Improve form spacing on mobile */
+  .form-control {
+    padding: 0.75rem;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Better mobile card spacing */
+  .employee-card {
+    margin-bottom: 0.75rem;
+  }
+  
+  /* Improve mobile navigation */
+  .mobile-nav-item {
+    padding: 0.75rem 1rem;
+    min-height: 48px;
   }
 }
 
