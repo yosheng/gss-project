@@ -18,8 +18,44 @@ const config: Config = {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        // Design system border radius
+        'ds-sm': 'var(--radius-sm)',
+        'ds-base': 'var(--radius-base)',
+        'ds-md': 'var(--radius-md)',
+        'ds-lg': 'var(--radius-lg)',
+        'ds-full': 'var(--radius-full)',
+      },
+      fontFamily: {
+        'ds-base': 'var(--font-family-base)',
+        'ds-mono': 'var(--font-family-mono)',
+      },
+      fontSize: {
+        'ds-xs': 'var(--font-size-xs)',
+        'ds-sm': 'var(--font-size-sm)',
+        'ds-base': 'var(--font-size-base)',
+        'ds-md': 'var(--font-size-md)',
+        'ds-lg': 'var(--font-size-lg)',
+        'ds-xl': 'var(--font-size-xl)',
+        'ds-2xl': 'var(--font-size-2xl)',
+        'ds-3xl': 'var(--font-size-3xl)',
+        'ds-4xl': 'var(--font-size-4xl)',
+      },
+      spacing: {
+        'ds-0': 'var(--space-0)',
+        'ds-1': 'var(--space-1)',
+        'ds-2': 'var(--space-2)',
+        'ds-4': 'var(--space-4)',
+        'ds-6': 'var(--space-6)',
+        'ds-8': 'var(--space-8)',
+        'ds-10': 'var(--space-10)',
+        'ds-12': 'var(--space-12)',
+        'ds-16': 'var(--space-16)',
+        'ds-20': 'var(--space-20)',
+        'ds-24': 'var(--space-24)',
+        'ds-32': 'var(--space-32)',
       },
       colors: {
+        // Existing shadcn colors
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -60,6 +96,27 @@ const config: Config = {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+        // Design system colors
+        'ds-background': 'var(--color-background)',
+        'ds-surface': 'var(--color-surface)',
+        'ds-text': 'var(--color-text)',
+        'ds-text-secondary': 'var(--color-text-secondary)',
+        'ds-primary': {
+          DEFAULT: 'var(--color-primary)',
+          hover: 'var(--color-primary-hover)',
+          active: 'var(--color-primary-active)',
+        },
+        'ds-secondary': {
+          DEFAULT: 'var(--color-secondary)',
+          hover: 'var(--color-secondary-hover)',
+          active: 'var(--color-secondary-active)',
+        },
+        'ds-border': 'var(--color-border)',
+        'ds-error': 'var(--color-error)',
+        'ds-success': 'var(--color-success)',
+        'ds-warning': 'var(--color-warning)',
+        'ds-info': 'var(--color-info)',
+        'ds-card-border': 'var(--color-card-border)',
       },
       keyframes: {
         'accordion-down': {
