@@ -9,9 +9,10 @@ import MainLayout from '@/components/layout/main-layout';
 interface AppRouterProps {
   user: User | null;
   onLogout: () => void;
+  onRedirectToLogin?: () => void;
 }
 
-export default function AppRouter({ user, onLogout }: AppRouterProps) {
+export default function AppRouter({ user, onLogout, onRedirectToLogin }: AppRouterProps) {
   const [currentRoute, setCurrentRoute] = useState<RouteKey>(getDefaultRoute());
 
   const handleNavigate = (route: RouteKey) => {
@@ -36,7 +37,11 @@ export default function AppRouter({ user, onLogout }: AppRouterProps) {
   const PageComponent = currentRouteConfig.component;
 
   return (
-    <RouteGuard user={user} requireAuth={currentRouteConfig.requireAuth}>
+    <RouteGuard 
+      user={user} 
+      requireAuth={currentRouteConfig.requireAuth}
+      onRedirectToLogin={onRedirectToLogin}
+    >
       <MainLayout 
         currentRoute={currentRoute}
         onNavigate={handleNavigate}
