@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM 維護工作單提交系統</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h1>AM 維護工作單提交</h1>
+            <p class="subtitle">請填寫以下資訊以提交維護工作單</p>
+            
+            <form id="maintenanceForm" class="maintenance-form">
+                <div class="form-group">
+                    <label for="workDate" class="form-label">工作日期</label>
+                    <input 
+                        type="date" 
+                        id="workDate" 
+                        name="workDate"
+                        class="form-control"
+                        required
+                    >
+                    <div class="form-error" id="dateError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description" class="form-label">工作描述</label>
+                    <textarea 
+                        id="description" 
+                        name="description"
+                        class="form-control"
+                        rows="4"
+                        placeholder="請輸入詳細的工作描述..."
+                        required
+                    ></textarea>
+                    <div class="form-error" id="descriptionError"></div>
+                </div>
+
+                <button type="submit" class="btn btn--primary btn--full-width" id="submitBtn">
+                    <span id="submitText">提交工作單</span>
+                    <div id="loadingSpinner" class="loading-spinner hidden">
+                        <div class="spinner"></div>
+                    </div>
+                </button>
+            </form>
+
+            <div id="responseMessage" class="response-message hidden">
+                <div id="messageContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

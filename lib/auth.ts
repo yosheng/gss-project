@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { User } from '@supabase/supabase-js';
 
 export async function signInWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -43,4 +44,53 @@ export async function signInWithEnvCredentials(username: string, password: strin
             }
         };
     }
+}
+
+/**
+ * 驗證用戶會話的有效性
+ */
+export function validateUserSession(user: User | null): boolean {
+  if (!user) return false;
+  
+  // 檢查用戶對象是否包含必要的屬性
+  if (!user.id) return false;
+  
+  // 檢查用戶 email 是否存在（對於大多數認證系統）
+  if (!user.email && !user.user_metadata?.name) return false;
+  
+  return true;
+}
+
+/**
+ * 檢查當前會話狀態
+ */
+export async function getCurrentSession() {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('Session check error:', error);
+      return null;
+    }
+    return session;
+  } catch (error) {
+    console.error('Failed to get current session:', error);
+    return null;
+  }
+}
+
+/**
+ * 強制刷新會話
+ */
+export async function refreshSession() {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      console.error('Session refresh error:', error);
+      return { data: null, error };
+    }
+    return { data, error: null };
+  } catch (error) {
+    console.error('Failed to refresh session:', error);
+    return { data: null, error };
+  }
 }
