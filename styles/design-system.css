@@ -175,46 +175,46 @@ html {
 /* Component styles using CSS variables */
 @layer components {
   .btn-primary {
-    @apply bg-[var(--color-primary)] text-[var(--color-btn-primary-text)] hover:bg-[var(--color-primary-hover)] active:bg-[var(--color-primary-active)];
-    @apply px-4 py-2 rounded-[var(--radius-base)] font-medium transition-all duration-[var(--duration-normal)];
-    @apply focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--color-focus-ring)];
+    @apply bg-ds-primary text-ds-btn-primary-text hover:bg-ds-primary-hover active:bg-ds-primary-active;
+    @apply px-4 py-2 rounded-ds-base font-medium transition-all duration-normal;
+    @apply focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ds-focus-ring;
   }
 
   .btn-secondary {
-    @apply bg-[var(--color-secondary)] text-[var(--color-text)] hover:bg-[var(--color-secondary-hover)] active:bg-[var(--color-secondary-active)];
-    @apply px-4 py-2 rounded-[var(--radius-base)] font-medium transition-all duration-[var(--duration-normal)];
-    @apply focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--color-focus-ring)];
+    @apply bg-ds-secondary text-ds-text hover:bg-ds-secondary-hover active:bg-ds-secondary-active;
+    @apply px-4 py-2 rounded-ds-base font-medium transition-all duration-normal;
+    @apply focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ds-focus-ring;
   }
 
   .form-control {
-    @apply w-full px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-base)];
-    @apply text-[var(--color-text)] placeholder:text-[var(--color-text-secondary)];
-    @apply focus:border-[var(--color-primary)] focus:outline-[var(--focus-outline)] focus:outline-offset-0;
-    @apply transition-all duration-[var(--duration-fast)];
+    @apply w-full px-3 py-2 bg-ds-surface border border-ds-border rounded-ds-base;
+    @apply text-ds-text placeholder:text-ds-text-secondary;
+    @apply focus:border-ds-primary focus:outline-ds-primary focus:outline-2 focus:outline-offset-0;
+    @apply transition-all duration-fast;
   }
 
   .card {
-    @apply bg-[var(--color-surface)] border border-[var(--color-card-border)] rounded-[var(--radius-lg)];
-    @apply shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow duration-[var(--duration-normal)];
+    @apply bg-ds-surface border border-ds-card-border rounded-ds-lg;
+    @apply shadow-ds-sm hover:shadow-ds-md transition-shadow duration-normal;
   }
 
   .status-success {
-    @apply bg-[rgba(var(--color-success-rgb),0.15)] text-[var(--color-success)] border border-[rgba(var(--color-success-rgb),0.25)];
+    @apply bg-ds-status-success-bg text-ds-success border border-ds-status-success-border;
     @apply px-3 py-1 rounded-full text-sm font-medium;
   }
 
   .status-error {
-    @apply bg-[rgba(var(--color-error-rgb),0.15)] text-[var(--color-error)] border border-[rgba(var(--color-error-rgb),0.25)];
+    @apply bg-ds-status-error-bg text-ds-error border border-ds-status-error-border;
     @apply px-3 py-1 rounded-full text-sm font-medium;
   }
 
   .status-warning {
-    @apply bg-[rgba(var(--color-warning-rgb),0.15)] text-[var(--color-warning)] border border-[rgba(var(--color-warning-rgb),0.25)];
+    @apply bg-ds-status-warning-bg text-ds-warning border border-ds-status-warning-border;
     @apply px-3 py-1 rounded-full text-sm font-medium;
   }
 
   .status-info {
-    @apply bg-[rgba(var(--color-info-rgb),0.15)] text-[var(--color-info)] border border-[rgba(var(--color-info-rgb),0.25)];
+    @apply bg-ds-status-info-bg text-ds-info border border-ds-status-info-border;
     @apply px-3 py-1 rounded-full text-sm font-medium;
   }
 }

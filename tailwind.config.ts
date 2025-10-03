@@ -117,6 +117,16 @@ const config: Config = {
         'ds-warning': 'var(--color-warning)',
         'ds-info': 'var(--color-info)',
         'ds-card-border': 'var(--color-card-border)',
+        'ds-btn-primary-text': 'var(--color-btn-primary-text)',
+        'ds-focus-ring': 'var(--color-focus-ring)',
+        'ds-status-success-bg': 'rgba(var(--color-success-rgb), 0.15)',
+        'ds-status-success-border': 'rgba(var(--color-success-rgb), 0.25)',
+        'ds-status-error-bg': 'rgba(var(--color-error-rgb), 0.15)',
+        'ds-status-error-border': 'rgba(var(--color-error-rgb), 0.25)',
+        'ds-status-warning-bg': 'rgba(var(--color-warning-rgb), 0.15)',
+        'ds-status-warning-border': 'rgba(var(--color-warning-rgb), 0.25)',
+        'ds-status-info-bg': 'rgba(var(--color-info-rgb), 0.15)',
+        'ds-status-info-border': 'rgba(var(--color-info-rgb), 0.25)',
       },
       keyframes: {
         'accordion-down': {
@@ -139,6 +149,19 @@ const config: Config = {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+      transitionDuration: {
+        fast: 'var(--duration-fast)',
+        normal: 'var(--duration-normal)',
+      },
+      transitionTimingFunction: {
+        standard: 'var(--ease-standard)',
+      },
+      boxShadow: {
+        'ds-xs': 'var(--shadow-xs)',
+        'ds-sm': 'var(--shadow-sm)',
+        'ds-md': 'var(--shadow-md)',
+        'ds-lg': 'var(--shadow-lg)',
       },
     },
   },
