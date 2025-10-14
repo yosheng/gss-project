@@ -2,10 +2,12 @@ import { ComponentType, lazy } from 'react';
 
 // Lazy load page components for better performance
 const WorkOrderPage = lazy(() => import('@/pages/work-order-page'));
+const WorkOrderListPage = lazy(() => import('@/pages/work-order-list-page'));
 const EmployeesPage = lazy(() => import('@/pages/employees-page'));
 
 export const ROUTES = {
   WORK_ORDER: 'work-order',
+  WORK_ORDER_LIST: 'work-order-list',
   EMPLOYEES: 'employees',
 } as const;
 
@@ -28,6 +30,12 @@ export const routeConfigs: RouteConfig[] = [
     title: '工作單填寫',
     requireAuth: true,
     component: WorkOrderPage,
+  },
+  {
+    key: ROUTES.WORK_ORDER_LIST,
+    title: '工作單列表',
+    requireAuth: true,
+    component: WorkOrderListPage,
   },
   {
     key: ROUTES.EMPLOYEES,
