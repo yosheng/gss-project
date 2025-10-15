@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { workOrderSchema, WorkOrderFormData } from '@/lib/schemas/work-order';
 import { GssApiService } from '@/lib/gss-api';
-import { WorkOrderError, SecureErrorLogger } from '@/lib/errors';
+import { WorkOrderError, SecureErrorLogger, ERROR_CODES } from '@/lib/errors';
 import { useAuth } from '@/components/auth-provider';
 import {
   Collapsible,
@@ -95,11 +95,16 @@ const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitErr
       }, 2000);
 
     } catch (error) {
-      const errorMessage = error instanceof WorkOrderError 
-        ? error.getSafeMessage() 
-        : '發生未知錯誤';
-      SecureErrorLogger.logError(error as Error, 'WorkOrderForm.onSubmit');
-      onSubmitError?.(errorMessage);
+      const errorMessage = (error instanceof WorkOrderError)
+        ? error 
+        : new WorkOrderError(
+            '發生未知錯誤',
+            ERROR_CODES.API_ERROR,
+            500,
+            error as Error
+          );
+      SecureErrorLogger.logError(errorMessage, 'WorkOrderForm.onSubmit');
+      onSubmitError?.('發生未知錯誤');
     } finally {
       setIsSubmitting(false);
     }
