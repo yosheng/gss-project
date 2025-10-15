@@ -6,37 +6,13 @@ import { WorkOrderError, ERROR_CODES } from './errors';
  * Handles sensitive API credentials and configuration
  */
 export class ApiConfig {
-  private static instance: ApiConfig;
-  private readonly apiToken: string;
   private readonly apiUrl: string;
 
-  private constructor() {
+  constructor() {
     // Validate environment variables
-    this.apiToken = this.getSecureEnvVar('GSS_API_TOKEN');
-    this.apiUrl = this.getSecureEnvVar('GSS_API_URL');
-  }
+    const apiUrl = process.env.NEXT_PUBLIC_GSS_API_URL;
 
-  /**
-   * Get singleton instance
-   */
-  public static getInstance(): ApiConfig {
-    if (!ApiConfig.instance) {
-      ApiConfig.instance = new ApiConfig();
-    }
-    return ApiConfig.instance;
-  }
-
-  /**
-   * Securely retrieve environment variable
-   * @param key - Environment variable key
-   * @returns Environment variable value
-   * @throws WorkOrderError if variable is missing
-   */
-  private getSecureEnvVar(key: string): string {
-    const value = process.env[key];
-    
-    if (!value || value.trim() === '') {
-      console.error(`Missing required environment variable: ${key}`);
+    if (!apiUrl || apiUrl.trim() === '') {
       throw new WorkOrderError(
         '系統配置錯誤，請聯繫系統管理員',
         ERROR_CODES.API_ERROR,
@@ -44,7 +20,7 @@ export class ApiConfig {
       );
     }
     
-    return value.trim();
+    this.apiUrl = apiUrl.trim();
   }
 
   /**
@@ -59,11 +35,20 @@ export class ApiConfig {
    * @returns Headers object with authorization and security headers
    */
   public getSecureHeaders(): Record<string, string> {
+    const apiToken = typeof window !== 'undefined' ? localStorage.getItem('gss-api-auth-token') : null;
+    if (!apiToken) {
+      throw new WorkOrderError(
+        '未找到認證令牌，請重新登入',
+        ERROR_CODES.UNAUTHORIZED,
+        401
+      );
+    }
+    
     return {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
       'Accept': 'application/json, text/plain, */*',
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.apiToken}`,
+      'Authorization': `Bearer ${apiToken}`,
       'accept-language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
       'origin': 'https://assistant.gss.com.tw',
       'priority': 'u=1, i',
@@ -82,8 +67,12 @@ export class ApiConfig {
    * @returns boolean indicating if token appears valid
    */
   public validateTokenFormat(): boolean {
+    const apiToken = typeof window !== 'undefined' ? localStorage.getItem('gss-api-auth-token') : null;
+    if (!apiToken) {
+        return false;
+    }
     // Basic validation - token should be a long string
-    return this.apiToken.length > 100 && /^[A-Za-z0-9_-]+$/.test(this.apiToken);
+    return apiToken.length > 100 && /^[A-Za-z0-9_-]+$/.test(apiToken);
   }
 
   /**

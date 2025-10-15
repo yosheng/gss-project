@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faHome, 
   faClipboardList, 
+  faList,
   faUser, 
   faSignOutAlt, 
   faBars, 
@@ -35,6 +36,8 @@ export default function Navigation({ currentRoute, onNavigate, onLogout }: Navig
     switch (routeKey) {
       case 'work-order':
         return faClipboardList;
+      case 'work-order-list':
+        return faList;
       case 'employees':
         return faUser;
       default:
