@@ -13,7 +13,6 @@ export class ApiConfig {
     const apiUrl = process.env.NEXT_PUBLIC_GSS_API_URL;
 
     if (!apiUrl || apiUrl.trim() === '') {
-      console.error('Missing required environment variable: NEXT_PUBLIC_GSS_API_URL');
       throw new WorkOrderError(
         '系統配置錯誤，請聯繫系統管理員',
         ERROR_CODES.API_ERROR,
@@ -37,11 +36,10 @@ export class ApiConfig {
    */
   public getSecureHeaders(): Record<string, string> {
     const apiToken = typeof window !== 'undefined' ? localStorage.getItem('gss-api-auth-token') : null;
-    console.log('apiToken: %s', apiToken)
     if (!apiToken) {
       throw new WorkOrderError(
         '未找到認證令牌，請重新登入',
-        ERROR_CODES.AUTHENTICATION_ERROR,
+        ERROR_CODES.UNAUTHORIZED,
         401
       );
     }

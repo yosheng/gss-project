@@ -20,7 +20,7 @@ export class GssApiService {
     try {
       const apiConfig = new ApiConfig();
       const headers = apiConfig.getSecureHeaders();
-      const apiUrl = apiConfig.getApiUrl(); // The base URL
+      const apiUrl = `${apiConfig.getApiUrl()}/AMApi/AMMaintainWeb/InsertData/AMMaintainWeb`;
 
       // This fixed base payload seems to be a core requirement.
       const fixedPayloadBase: Omit<WorkOrderPayload, 'sdateTime' | 'edateTime' | 'description'> = {
