@@ -22,15 +22,10 @@ export class SecurityValidator {
     const recommendations: string[] = [];
 
     // Check environment variables
-    if (!process.env.GSS_API_TOKEN) {
-      issues.push('GSS_API_TOKEN environment variable is missing');
-    } else if (process.env.GSS_API_TOKEN.length < 100) {
-      issues.push('GSS_API_TOKEN appears to be too short');
-    }
 
-    if (!process.env.GSS_API_URL) {
+    if (!process.env.NEXT_PUBLIC_GSS_API_URL) {
       issues.push('GSS_API_URL environment variable is missing');
-    } else if (!process.env.GSS_API_URL.startsWith('https://')) {
+    } else if (!process.env.NEXT_PUBLIC_GSS_API_URL.startsWith('https://')) {
       issues.push('GSS_API_URL should use HTTPS protocol');
     }
 

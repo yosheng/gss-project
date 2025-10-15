@@ -3,20 +3,26 @@ import { ApiConfig, InputSanitizer } from './api-config';
 import { WorkOrderError, SecureErrorLogger, ERROR_CODES } from './errors';
 import { WorkOrderListResponse, WorkOrderListFilter, WorkOrderListItem } from './types/work-order-list';
 
+// Define the payload type for fetching the work order list
+export type FetchWorkOrderListPayload = Partial<Omit<WorkOrderListFilter, 'arg'>> & {
+  arg?: Partial<WorkOrderListFilter['arg']>;
+};
+
 export class WorkOrderListClient {
   /**
    * Fetch work order list from the API
-   * @param payload - The request payload
+   * @param payload - The request payload to override default filters
    * @returns A promise that resolves to an array of work order list items
    */
-  public static async fetchWorkOrderList(payload: FetchWorkOrderListPayload): Promise<WorkOrderListItem[]> {
+  public static async fetchWorkOrderList(payload: FetchWorkOrderListPayload = {}): Promise<WorkOrderListItem[]> {
     const apiConfig = new ApiConfig();
-    const url = `${apiConfig.getApiUrl()}/rest/v1/pmis/work-order/list`;
+    // Correct the URL to match the cURL command
+    const url = `${apiConfig.getApiUrl()}/AMApi/AMMaintainWeb/filter/AMMaintainWeb`;
     const headers = apiConfig.getSecureHeaders();
 
     try {
-      // Validate API configuration
-      if (!this.apiConfig.validateTokenFormat()) {
+      // Validate API token format using the local apiConfig instance
+      if (!apiConfig.validateTokenFormat()) {
         throw new WorkOrderError(
           'API 配置無效',
           ERROR_CODES.API_ERROR,
@@ -24,13 +30,18 @@ export class WorkOrderListClient {
         );
       }
 
-      // Create default filter with date range (last 30 days)
+      // Create a default filter with a sensible date range (current week, Sunday to Saturday)
       const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfWeek = new Date(today);
+      // Sunday is day 0, so subtract the current day number to get to Sunday
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday is 6 days after Sunday
+
       const defaultFilter: WorkOrderListFilter = {
         pageIndex: 0,
-        pageSize: 50,
+        pageSize: 10, // Match the cURL command's page size
         sortField: "",
         sortExpression: "",
         arg: {
@@ -39,8 +50,8 @@ export class WorkOrderListClient {
           caseContNo: null,
           isPrdOrPjt: null,
           prdPjtNo: null,
-          sdateTime: thirtyDaysAgo.toISOString(),
-          edateTime: now.toISOString(),
+          sdateTime: startOfWeek.toISOString(),
+          edateTime: endOfWeek.toISOString(),
           ttlHours: null,
           actTypeId: null,
           isPrnToCust: null,
@@ -58,13 +69,13 @@ export class WorkOrderListClient {
         requiredKeyItems: false
       };
 
-      // Merge with provided filter
-      const finalFilter = {
+      // Merge the default filter with the provided payload
+      const finalFilter: WorkOrderListFilter = {
         ...defaultFilter,
-        ...filter,
+        ...payload,
         arg: {
           ...defaultFilter.arg,
-          ...filter.arg
+          ...payload.arg
         }
       };
 
@@ -79,19 +90,13 @@ export class WorkOrderListClient {
         finalFilter.arg.prdPjtNo = InputSanitizer.sanitizeString(finalFilter.arg.prdPjtNo);
       }
 
-      const apiUrl = this.apiConfig.getApiUrl();
-      const headers = this.apiConfig.getSecureHeaders();
-
-      console.log('Fetching work order list', {
+      console.log('Fetching work order list with filter:', {
         timestamp: new Date().toISOString(),
-        pageSize: finalFilter.pageSize,
-        dateRange: {
-          start: finalFilter.arg.sdateTime,
-          end: finalFilter.arg.edateTime
-        }
+        url,
+        filter: finalFilter
       });
 
-      const response = await fetch(`${apiUrl}/AMApi/AMMaintainWeb/filter/AMMaintainWeb`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(finalFilter),

@@ -10,20 +10,10 @@ export class ApiConfig {
 
   constructor() {
     // Validate environment variables
-    this.apiUrl = this.getSecureEnvVar('NEXT_PUBLIC_GSS_API_URL');
-  }
+    const apiUrl = process.env.NEXT_PUBLIC_GSS_API_URL;
 
-  /**
-   * Securely retrieve environment variable
-   * @param key - Environment variable key
-   * @returns Environment variable value
-   * @throws WorkOrderError if variable is missing
-   */
-  private getSecureEnvVar(key: string): string {
-    const value = process.env[key];
-    
-    if (!value || value.trim() === '') {
-      console.error(`Missing required environment variable: ${key}`);
+    if (!apiUrl || apiUrl.trim() === '') {
+      console.error('Missing required environment variable: NEXT_PUBLIC_GSS_API_URL');
       throw new WorkOrderError(
         '系統配置錯誤，請聯繫系統管理員',
         ERROR_CODES.API_ERROR,
@@ -31,7 +21,7 @@ export class ApiConfig {
       );
     }
     
-    return value.trim();
+    this.apiUrl = apiUrl.trim();
   }
 
   /**
@@ -47,7 +37,7 @@ export class ApiConfig {
    */
   public getSecureHeaders(): Record<string, string> {
     const apiToken = typeof window !== 'undefined' ? localStorage.getItem('gss-api-auth-token') : null;
-
+    console.log('apiToken: %s', apiToken)
     if (!apiToken) {
       throw new WorkOrderError(
         '未找到認證令牌，請重新登入',
