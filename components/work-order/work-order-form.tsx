@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { workOrderSchema, WorkOrderFormData } from '@/lib/schemas/work-order';
-import { WorkOrderClient } from '@/lib/work-order-client';
+import { GssApiService } from '@/lib/gss-api';
 import { WorkOrderError, SecureErrorLogger } from '@/lib/errors';
 import { useAuth } from '@/components/auth-provider';
 import {
@@ -77,96 +77,29 @@ const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitErr
   const onSubmit = useCallback(async (data: WorkOrderFormData) => {
     setIsSubmitting(true);
 
-    const token = localStorage.getItem('gss-api-auth-token');
-    if (!token) {
-      onSubmitError?.('Authorization Token 未設定，請先在上方設定中儲存 Token。');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const API_CONFIG = {
-        url: 'https://assistant.gss.com.tw/AMApi/AMMaintainWeb/InsertData/AMMaintainWeb',
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'accept-language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-            'origin': 'https://assistant.gss.com.tw',
-            'priority': 'u=1, i',
-            'referer': 'https://assistant.gss.com.tw/am/',
-            'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin'
-        }
-    };
-
-    const FIXED_PAYLOAD = {
-        actNo: null,
-        actTypeId: "Be",
-        custNo: "GSS",
-        caseContNo: "O202502047",
-        prdPjtNo: "內部專案-2025020600007 - Vital  Casebridge產品計畫書_2025年",
-        ttlHours: 8,
-        isPrnToCust: "Be099",
-        attachFileName: null,
-        isAttachFile: "00200",
-        isPrdOrPjt: "J",
-        message: null,
-        status: false,
-        favoriteContOppId: "7016",
-        suppDeptItems: "U236"
-    };
-
-    const formatDateTime = (date: string, timeStr: string) => {
-        return date + timeStr;
-    };
-
     try {
-      const payload = {
-          ...FIXED_PAYLOAD,
-          sdateTime: formatDateTime(data.workDate, 'T00:30:00.000Z'),
-          edateTime: formatDateTime(data.workDate, 'T09:30:00.000Z'),
-          description: data.description.trim()
-      };
+      // Use the new unified ApiClient
+      const response = await GssApiService.submitWorkOrder(data);
+      onSubmitSuccess?.(response.message || '工作單提交成功！');
+      
+      // Reset form on success
+      setTimeout(() => {
+        reset({ 
+          workDate: new Date().toISOString().split('T')[0],
+          description: '' 
+        });
+        const textarea = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
+        if (textarea) {
+          textarea.style.height = 'auto';
+        }
+      }, 2000);
 
-      const response = await fetch(API_CONFIG.url, {
-          method: 'POST',
-          headers: API_CONFIG.headers,
-          body: JSON.stringify(payload),
-          mode: 'cors'
-      });
-
-      if (response.ok) {
-        const responseData = await response.json();
-        onSubmitSuccess?.(responseData.message || '工作單提交成功！');
-        setTimeout(() => {
-          reset({ 
-            workDate: new Date().toISOString().split('T')[0],
-            description: '' 
-          });
-          const textarea = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
-          if (textarea) {
-            textarea.style.height = 'auto';
-          }
-        }, 2000);
-      } else {
-        const errorText = await response.text();
-        throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      const unknownError = new WorkOrderError(
-        `提交失敗: ${errorMessage}`,
-        'UNKNOWN_ERROR',
-        500,
-        error as Error
-      );
-      SecureErrorLogger.logError(unknownError, 'WorkOrderForm.onSubmit');
-      onSubmitError?.(unknownError.getSafeMessage());
+      const errorMessage = error instanceof WorkOrderError 
+        ? error.getSafeMessage() 
+        : '發生未知錯誤';
+      SecureErrorLogger.logError(error as Error, 'WorkOrderForm.onSubmit');
+      onSubmitError?.(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

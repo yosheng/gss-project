@@ -6,7 +6,40 @@ import { faList, faSearch, faCalendar, faRefresh } from '@fortawesome/free-solid
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { WorkOrderListClient } from '@/lib/work-order-list-client';
+import { GssApiService } from '@/lib/gss-api';
+
+// Helper functions moved from the old WorkOrderListClient
+function formatDate(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return dateString;
+  }
+}
+
+function formatDuration(hours: number): string {
+  if (hours < 1) {
+    return `${Math.round(hours * 60)} 分鐘`;
+  }
+  return `${hours} 小時`;
+}
+
+function truncateText(text: string, maxLength: number = 100): string {
+  if (!text || text.length <= maxLength) {
+    return text || '';
+  }
+  return text.substring(0, maxLength) + '...';
+}
+
 import { WorkOrderListItem } from '@/lib/types/work-order-list';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
@@ -60,7 +93,7 @@ export default function WorkOrderListPage({}: WorkOrderListPageProps) {
         new Date(dateFilter.endDate + 'T23:59:59.999Z').toISOString() : 
         new Date().toISOString();
 
-      const data = await WorkOrderListClient.fetchWorkOrderList({
+      const data = await GssApiService.fetchWorkOrderList({
         pageSize: 100,
         arg: {
           sdateTime: startDateTime,
@@ -231,7 +264,7 @@ export default function WorkOrderListPage({}: WorkOrderListPageProps) {
                         <div>
                           <span className="font-medium text-gray-700">工作摘要:</span>
                           <p className="text-gray-900 mt-1 leading-relaxed">
-                            {WorkOrderListClient.truncateText(workOrder.description, 200)}
+                            {truncateText(workOrder.description, 200)}
                           </p>
                         </div>
                         
@@ -246,7 +279,7 @@ export default function WorkOrderListPage({}: WorkOrderListPageProps) {
                           <div>
                             <span className="font-medium text-gray-700">產品/專案:</span>
                             <p className="text-gray-900 mt-1">
-                              {WorkOrderListClient.truncateText(workOrder.prdPjtNo, 150)}
+                              {truncateText(workOrder.prdPjtNo, 150)}
                             </p>
                           </div>
                         )}
@@ -259,19 +292,19 @@ export default function WorkOrderListPage({}: WorkOrderListPageProps) {
                         <div>
                           <span className="font-medium text-gray-700">開始時間:</span>
                           <p className="text-gray-900">
-                            {WorkOrderListClient.formatDate(workOrder.sdateTime)}
+                            {formatDate(workOrder.sdateTime)}
                           </p>
                         </div>
                         <div>
                           <span className="font-medium text-gray-700">結束時間:</span>
                           <p className="text-gray-900">
-                            {WorkOrderListClient.formatDate(workOrder.edateTime)}
+                            {formatDate(workOrder.edateTime)}
                           </p>
                         </div>
                         <div>
                           <span className="font-medium text-gray-700">總時數:</span>
                           <span className="text-blue-600 font-semibold ml-2">
-                            {WorkOrderListClient.formatDuration(workOrder.ttlHours)}
+                            {formatDuration(workOrder.ttlHours)}
                           </span>
                         </div>
                       </div>

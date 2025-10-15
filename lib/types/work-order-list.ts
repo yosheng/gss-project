@@ -57,3 +57,8 @@ export interface WorkOrderListFilter {
   keyField: string | null;
   requiredKeyItems: boolean;
 }
+
+// Payload type for fetching the work order list, allowing partial filters.
+export type FetchWorkOrderListPayload = Partial<Omit<WorkOrderListFilter, 'arg'>> & {
+  arg?: Partial<WorkOrderListFilter['arg']>;
+};
