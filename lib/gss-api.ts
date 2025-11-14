@@ -43,8 +43,8 @@ export class GssApiService {
       const sanitizedDate = InputSanitizer.sanitizeDate(formData.workDate);
       const payload: WorkOrderPayload = {
         ...fixedPayloadBase,
-        sdateTime: `${sanitizedDate}T00:30:00.000Z`,
-        edateTime: `${sanitizedDate}T09:30:00.000Z`,
+        sdateTime: `${sanitizedDate}T01:00:00.000Z`,
+        edateTime: `${sanitizedDate}T10:00:00.000Z`,
         description: InputSanitizer.sanitizeString(formData.description, 1000)
       };
 
