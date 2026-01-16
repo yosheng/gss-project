@@ -1,11 +1,11 @@
 name: Daily GSS Employee Scraper
 
 on:
-  # 每天凌晨1点执行（UTC时间，北京时间需要减8小时，所以设置为17:00 UTC = 北京时间凌晨1点）
+  # 每天凌晨1點執行（UTC時間，台北時間需要減8小時，所以設置為17:00 UTC = 台北時間凌晨1點）
   schedule:
-    - cron: '0 17 * * *'  # UTC 17:00 = 北京时间次日凌晨1:00
+    - cron: '0 17 * * *'  # UTC 17:00 = 台北時間次日凌晨1:00
 
-  # 允许手动触发，方便测试
+  # 允許手動觸發，方便測試
   workflow_dispatch:
 
 jobs:
@@ -33,11 +33,3 @@ jobs:
           API_AUTH_TOKEN: ${{ secrets.API_AUTH_TOKEN }}
         run: |
           python scrape_gss.py --source api
-
-      - name: Upload data artifacts (optional)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: scrape-data-${{ github.run_number }}
-          path: data/
-          retention-days: 7

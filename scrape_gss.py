@@ -5,6 +5,7 @@ import re
 import json
 import glob
 import argparse
+from datetime import datetime
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
@@ -140,6 +141,133 @@ def load_from_local():
     return all_employees
 
 
+def fetch_existing_employees_from_supabase(supabase: Client):
+    """
+    從 Supabase 拉取所有現有員工資料。
+
+    Args:
+        supabase: Supabase 客戶端實例
+
+    Returns:
+        set: emp_id 的集合，方便快速查詢
+    """
+    print("🔍 正在從 Supabase 拉取現有員工資料...")
+
+    try:
+        # 拉取所有員工資料（emp_id 用於比對）
+        response = supabase.table(TABLE_NAME).select("emp_id").execute()
+
+        if not response.data:
+            print("ℹ️  Supabase 中目前沒有任何員工資料。")
+            return set()
+
+        # 將資料轉換為 emp_id 的集合，方便快速查詢
+        existing_emp_ids = {emp['emp_id'] for emp in response.data}
+        print(f"✅ 成功拉取 {len(existing_emp_ids)} 筆現有員工資料。")
+
+        return existing_emp_ids
+
+    except Exception as e:
+        print(f"❌ 從 Supabase 拉取資料時發生錯誤: {e}")
+        return set()
+
+
+def sync_employees_to_supabase(supabase: Client, transformed_data: list, departed_status='離職'):
+    """
+    同步員工資料到 Supabase，實現增量更新和離職標記。
+
+    同步邏輯：
+    1. API 返回的員工在 Supabase 不存在 → 新增記錄
+    2. API 返回的員工在 Supabase 已存在 → 更新記錄（包括 last_updated_at）
+    3. Supabase 存在但 API 未返回的員工 → 標記為離職（更新 job_status）
+
+    Args:
+        supabase: Supabase 客戶端實例
+        transformed_data: 轉換後的員工資料列表
+        departed_status: 離職狀態的值（預設為 '離職'）
+
+    Returns:
+        dict: 包含統計資訊的字典 {'new': 新增數, 'updated': 更新數, 'departed': 離職數}
+    """
+    print("\n" + "="*50)
+    print("開始同步資料到 Supabase...")
+    print("="*50)
+
+    # 統計資訊
+    stats = {'new': 0, 'updated': 0, 'departed': 0}
+
+    # 1. 拉取 Supabase 中現有的員工 emp_id
+    existing_emp_ids = fetch_existing_employees_from_supabase(supabase)
+
+    # 2. 從 API 數據中提取 emp_id 集合
+    api_emp_ids = {record['emp_id'] for record in transformed_data if 'emp_id' in record}
+    print(f"\n📊 從 API 獲取了 {len(api_emp_ids)} 筆員工資料。")
+
+    # 3. 分析需要新增和更新的員工
+    new_emp_ids = api_emp_ids - existing_emp_ids
+    update_emp_ids = api_emp_ids & existing_emp_ids
+
+    print(f"   - 需要新增：{len(new_emp_ids)} 筆")
+    print(f"   - 需要更新：{len(update_emp_ids)} 筆")
+
+    # 4. 新增或更新員工資料
+    current_time = datetime.now().isoformat()
+
+    for record in transformed_data:
+        emp_id = record.get('emp_id')
+        if not emp_id:
+            continue
+
+        # 添加 last_updated_at 字段
+        record['last_updated_at'] = current_time
+
+    # 使用 upsert 一次性處理新增和更新
+    try:
+        if transformed_data:
+            print(f"\n🔄 正在執行 upsert 操作...")
+            response = supabase.table(TABLE_NAME).upsert(
+                transformed_data,
+                on_conflict='emp_id'
+            ).execute()
+
+            if response.data:
+                stats['new'] = len(new_emp_ids)
+                stats['updated'] = len(update_emp_ids)
+                print(f"✅ 成功新增/更新 {len(response.data)} 筆資料。")
+            else:
+                print(f"⚠️  Upsert 操作完成，但未返回資料。")
+
+    except Exception as e:
+        print(f"❌ Upsert 操作失敗: {e}")
+        return stats
+
+    # 5. 標記離職的員工
+    departed_emp_ids = existing_emp_ids - api_emp_ids
+
+    if departed_emp_ids:
+        print(f"\n👋 發現 {len(departed_emp_ids)} 位員工已離職，正在更新狀態...")
+
+        for emp_id in departed_emp_ids:
+            try:
+                response = supabase.table(TABLE_NAME).update({
+                    'job_status': departed_status,
+                    'last_updated_at': current_time
+                }).eq('emp_id', emp_id).execute()
+
+                if response.data:
+                    stats['departed'] += 1
+                    print(f"   - 已標記 {emp_id} 為離職")
+
+            except Exception as e:
+                print(f"   ❌ 更新 {emp_id} 離職狀態失敗: {e}")
+
+        print(f"✅ 成功標記 {stats['departed']} 位員工為離職。")
+    else:
+        print(f"\nℹ️  沒有員工離職。")
+
+    return stats
+
+
 def main():
     """主執行函數"""
     parser = argparse.ArgumentParser(description="爬取 GSS 員工資料並存入 Supabase。")
@@ -207,7 +335,7 @@ def main():
 
     print("🔄 資料格式轉換完成 (camelCase -> snake_case)。")
 
-    # --- 步驟 3: 初始化 Supabase 並寫入資料 ---
+    # --- 步驟 3: 初始化 Supabase ---
     if not all([SUPABASE_URL, SUPABASE_KEY]):
         print("🔴 錯誤：請檢查 .env 檔案中的 Supabase URL/KEY 是否已設定。")
         return
@@ -219,22 +347,18 @@ def main():
         print(f"🔴 Supabase 初始化失敗: {e}")
         return
 
-    print(f"正在將 {len(transformed_data)} 筆資料寫入 Supabase 的 '{TABLE_NAME}' 資料表中...")
-    try:
-        response = supabase.table(TABLE_NAME).upsert(
-            transformed_data,
-            on_conflict='emp_id'
-        ).execute()
+    # --- 步驟 4: 同步資料到 Supabase（增量更新 + 離職標記）---
+    stats = sync_employees_to_supabase(supabase, transformed_data)
 
-        if response.data:
-            print(f"🎉 成功！資料已寫入 Supabase。")
-        else:
-            print(f"⚠️ 操作完成，但 Supabase 未返回成功資料。請檢查資料表。")
-            if hasattr(response, 'error') and response.error:
-                print(f"   錯誤詳情: {response.error}")
-
-    except Exception as e:
-        print(f"🔴 寫入 Supabase 時發生錯誤: {e}")
+    # --- 輸出統計摘要 ---
+    print("\n" + "="*50)
+    print("📈 同步完成！統計摘要：")
+    print("="*50)
+    print(f"   ✅ 新增員工：{stats['new']} 筆")
+    print(f"   🔄 更新員工：{stats['updated']} 筆")
+    print(f"   👋 離職員工：{stats['departed']} 筆")
+    print(f"   📊 總計處理：{stats['new'] + stats['updated'] + stats['departed']} 筆")
+    print("="*50 + "\n")
 
 
 if __name__ == "__main__":
