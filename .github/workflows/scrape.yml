@@ -1,0 +1,35 @@
+name: Daily GSS Employee Scraper
+
+on:
+  # 每天凌晨1點執行（UTC時間，台北時間需要減8小時，所以設置為17:00 UTC = 台北時間凌晨1點）
+  schedule:
+    - cron: '0 17 * * *'  # UTC 17:00 = 台北時間次日凌晨1:00
+
+  # 允許手動觸發，方便測試
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+
+      - name: Run scraper script
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_KEY }}
+          API_AUTH_TOKEN: ${{ secrets.API_AUTH_TOKEN }}
+        run: |
+          python scrape_gss.py --source api
