@@ -1,14 +1,11 @@
 'use client';
 
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faCheck, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
+import SearchableSelect from '@/components/ui/searchable-select';
 
 interface EmployeeSearchProps {
   searchTerm: string;
@@ -37,32 +34,11 @@ const EmployeeSearch = memo(function EmployeeSearch({
   statuses,
   titles,
 }: EmployeeSearchProps) {
-  const [open, setOpen] = useState(false);
-  const [departmentSearchTerm, setDepartmentSearchTerm] = useState('');
-
   // Memoize filtered arrays to prevent unnecessary re-renders
-  const memoizedDepartments = useMemo(() =>
-    departments.filter((dept): dept is string => dept !== null),
-    [departments]
-  );
-
   const memoizedStatuses = useMemo(() =>
     statuses.filter((status): status is string => status !== null),
     [statuses]
   );
-
-  const memoizedTitles = useMemo(() =>
-    titles.filter((title): title is string => title !== null),
-    [titles]
-  );
-
-  // Filter departments based on search term
-  const filteredDepartments = useMemo(() => {
-    if (!departmentSearchTerm) return memoizedDepartments;
-    return memoizedDepartments.filter(dept =>
-      dept.toLowerCase().includes(departmentSearchTerm.toLowerCase())
-    );
-  }, [memoizedDepartments, departmentSearchTerm]);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -93,86 +69,25 @@ const EmployeeSearch = memo(function EmployeeSearch({
         </SelectContent>
       </Select>
 
-      <Select value={titleFilter} onValueChange={onTitleFilterChange}>
-        <SelectTrigger className="min-h-[44px] touch-manipulation">
-          <SelectValue placeholder="依職稱篩選" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">所有職稱</SelectItem>
-          {memoizedTitles.map(title => (
-            <SelectItem key={title} value={title}>
-              {title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SearchableSelect
+        value={titleFilter}
+        onValueChange={onTitleFilterChange}
+        options={titles}
+        placeholder="依職稱篩選"
+        searchPlaceholder="搜尋職稱..."
+        emptyText="找不到職稱"
+        allOptionLabel="所有職稱"
+      />
 
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="min-h-[44px] w-full justify-between touch-manipulation"
-          >
-            {departmentFilter === 'all'
-              ? '依部門篩選'
-              : memoizedDepartments.find(dept => dept === departmentFilter) || '依部門篩選'}
-            <FontAwesomeIcon icon={faChevronDown} className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-          <Command>
-            <CommandInput
-              placeholder="搜尋部門..."
-              value={departmentSearchTerm}
-              onValueChange={setDepartmentSearchTerm}
-            />
-            <CommandList>
-              <CommandEmpty>找不到部門</CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  value="all"
-                  onSelect={() => {
-                    onDepartmentFilterChange('all');
-                    setOpen(false);
-                    setDepartmentSearchTerm('');
-                  }}
-                >
-                  <FontAwesomeIcon
-                    icon={faCheck}
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                  所有部門
-                </CommandItem>
-                {filteredDepartments.map(dept => (
-                  <CommandItem
-                    key={dept}
-                    value={dept}
-                    onSelect={(currentValue) => {
-                      onDepartmentFilterChange(currentValue === departmentFilter ? 'all' : currentValue);
-                      setOpen(false);
-                      setDepartmentSearchTerm('');
-                    }}
-                  >
-                    <FontAwesomeIcon
-                      icon={faCheck}
-                      className={cn(
-                        'mr-2 h-4 w-4',
-                        departmentFilter === dept ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
-                    {dept}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+      <SearchableSelect
+        value={departmentFilter}
+        onValueChange={onDepartmentFilterChange}
+        options={departments}
+        placeholder="依部門篩選"
+        searchPlaceholder="搜尋部門..."
+        emptyText="找不到部門"
+        allOptionLabel="所有部門"
+      />
     </div>
   );
 });
