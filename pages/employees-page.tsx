@@ -20,17 +20,23 @@ export default function EmployeesPage({}: EmployeesPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [titleFilter, setTitleFilter] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Memoize unique departments and statuses to prevent unnecessary recalculations
-  const departments = useMemo(() => 
+  // Memoize unique departments, statuses, and titles to prevent unnecessary recalculations
+  const departments = useMemo(() =>
     Array.from(new Set(employees.map(emp => emp.dep_name_act || emp.dep_code).filter(Boolean))) as string[],
     [employees]
   );
-  
-  const statuses = useMemo(() => 
+
+  const statuses = useMemo(() =>
     Array.from(new Set(employees.map(emp => emp.job_status).filter(Boolean))) as string[],
+    [employees]
+  );
+
+  const titles = useMemo(() =>
+    Array.from(new Set(employees.map(emp => emp.tit_name).filter(Boolean))) as string[],
     [employees]
   );
 
@@ -61,8 +67,13 @@ export default function EmployeesPage({}: EmployeesPageProps) {
       );
     }
 
+    // Apply title filter
+    if (titleFilter !== 'all') {
+      filtered = filtered.filter(employee => employee.tit_name === titleFilter);
+    }
+
     return filtered;
-  }, [employees, searchTerm, statusFilter, departmentFilter]);
+  }, [employees, searchTerm, statusFilter, departmentFilter, titleFilter]);
 
   useEffect(() => {
     fetchEmployees();
@@ -118,7 +129,7 @@ export default function EmployeesPage({}: EmployeesPageProps) {
                   </CardTitle>
                   <CardDescription className="text-base sm:text-lg mt-1">
                     總員工數: <span className="font-semibold">{employees.length}</span>
-                    {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ?
+                    {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' || titleFilter !== 'all' ?
                       <span className="block sm:inline"> • 篩選結果: {filteredEmployees.length}</span> : ''
                     }
                   </CardDescription>
@@ -131,10 +142,13 @@ export default function EmployeesPage({}: EmployeesPageProps) {
                 onSearchChange={setSearchTerm}
                 statusFilter={statusFilter}
                 onStatusFilterChange={setStatusFilter}
+                titleFilter={titleFilter}
+                onTitleFilterChange={setTitleFilter}
                 departmentFilter={departmentFilter}
                 onDepartmentFilterChange={setDepartmentFilter}
                 departments={departments}
                 statuses={statuses}
+                titles={titles}
               />
             </div>
           </CardHeader>

@@ -15,10 +15,13 @@ interface EmployeeSearchProps {
   onSearchChange: (value: string) => void;
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
+  titleFilter: string;
+  onTitleFilterChange: (value: string) => void;
   departmentFilter: string;
   onDepartmentFilterChange: (value: string) => void;
   departments: string[];
   statuses: string[];
+  titles: string[];
 }
 
 const EmployeeSearch = memo(function EmployeeSearch({
@@ -26,10 +29,13 @@ const EmployeeSearch = memo(function EmployeeSearch({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
+  titleFilter,
+  onTitleFilterChange,
   departmentFilter,
   onDepartmentFilterChange,
   departments,
   statuses,
+  titles,
 }: EmployeeSearchProps) {
   const [open, setOpen] = useState(false);
   const [departmentSearchTerm, setDepartmentSearchTerm] = useState('');
@@ -45,6 +51,11 @@ const EmployeeSearch = memo(function EmployeeSearch({
     [statuses]
   );
 
+  const memoizedTitles = useMemo(() =>
+    titles.filter((title): title is string => title !== null),
+    [titles]
+  );
+
   // Filter departments based on search term
   const filteredDepartments = useMemo(() => {
     if (!departmentSearchTerm) return memoizedDepartments;
@@ -54,7 +65,7 @@ const EmployeeSearch = memo(function EmployeeSearch({
   }, [memoizedDepartments, departmentSearchTerm]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="relative">
         <FontAwesomeIcon
           icon={faSearch}
@@ -77,6 +88,20 @@ const EmployeeSearch = memo(function EmployeeSearch({
           {memoizedStatuses.map(status => (
             <SelectItem key={status} value={status}>
               {status}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={titleFilter} onValueChange={onTitleFilterChange}>
+        <SelectTrigger className="min-h-[44px] touch-manipulation">
+          <SelectValue placeholder="依職稱篩選" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">所有職稱</SelectItem>
+          {memoizedTitles.map(title => (
+            <SelectItem key={title} value={title}>
+              {title}
             </SelectItem>
           ))}
         </SelectContent>
