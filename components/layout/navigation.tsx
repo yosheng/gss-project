@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faHome, 
-  faClipboardList, 
+import {
+  faHome,
+  faClipboardList,
   faList,
-  faUser, 
-  faSignOutAlt, 
-  faBars, 
-  faTimes 
+  faUser,
+  faChartPie,
+  faSignOutAlt,
+  faBars,
+  faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import { Button } from '@/components/ui/button';
 import { routeConfigs, type RouteKey } from '@/lib/router';
@@ -40,6 +41,8 @@ export default function Navigation({ currentRoute, onNavigate, onLogout }: Navig
         return faList;
       case 'employees':
         return faUser;
+      case 'employee-statistics':
+        return faChartPie;
       default:
         return faHome;
     }

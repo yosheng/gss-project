@@ -4,11 +4,13 @@ import { ComponentType, lazy } from 'react';
 const WorkOrderPage = lazy(() => import('@/pages/work-order-page'));
 const WorkOrderListPage = lazy(() => import('@/pages/work-order-list-page'));
 const EmployeesPage = lazy(() => import('@/pages/employees-page'));
+const EmployeeStatisticsPage = lazy(() => import('@/pages/employee-statistics-page'));
 
 export const ROUTES = {
   WORK_ORDER: 'work-order',
   WORK_ORDER_LIST: 'work-order-list',
   EMPLOYEES: 'employees',
+  EMPLOYEE_STATISTICS: 'employee-statistics',
 } as const;
 
 export type RouteKey = typeof ROUTES[keyof typeof ROUTES];
@@ -42,6 +44,12 @@ export const routeConfigs: RouteConfig[] = [
     title: '成員查詢',
     requireAuth: true,
     component: EmployeesPage,
+  },
+  {
+    key: ROUTES.EMPLOYEE_STATISTICS,
+    title: '員工統計',
+    requireAuth: true,
+    component: EmployeeStatisticsPage,
   },
 ];
 
