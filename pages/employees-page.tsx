@@ -73,7 +73,7 @@ export default function EmployeesPage({}: EmployeesPageProps) {
       const { data, error } = await supabase
         .from('gss_employees')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('emp_id', { ascending: true });
 
       if (error) {
         console.error('Error fetching employees:', error);
