@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faEye, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -61,7 +61,7 @@ const EmployeeList = memo(function EmployeeList({ employees, totalCount, onEmplo
               <TableHead className="font-semibold">職稱</TableHead>
               <TableHead className="font-semibold">狀態</TableHead>
               <TableHead className="font-semibold">到職日期</TableHead>
-              <TableHead className="text-right font-semibold">操作</TableHead>
+              <TableHead className="text-right font-semibold">離職時間</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -109,19 +109,8 @@ const EmployeeList = memo(function EmployeeList({ employees, totalCount, onEmplo
                   <TableCell className="text-gray-600">
                     {employee.cmp_ent_dte ? new Date(employee.cmp_ent_dte).toLocaleDateString() : '-'}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {employee.is_show_private_data && (
-                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 min-h-[36px] min-w-[36px] touch-manipulation">
-                          <FontAwesomeIcon icon={faEye} />
-                        </Button>
-                      )}
-                      {employee.is_show_download_photo && (
-                        <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-800 min-h-[36px] min-w-[36px] touch-manipulation">
-                          <FontAwesomeIcon icon={faDownload} />
-                        </Button>
-                      )}
-                    </div>
+                  <TableCell className="text-right text-gray-600">
+                    {employee.terminated_at ? new Date(employee.terminated_at).toLocaleDateString() : '-'}
                   </TableCell>
                 </TableRow>
               ))
@@ -177,38 +166,13 @@ const EmployeeList = memo(function EmployeeList({ employees, totalCount, onEmplo
                     {employee.cmp_ent_dte ? new Date(employee.cmp_ent_dte).toLocaleDateString() : '-'}
                   </span>
                 </div>
-              </div>
-
-              {(employee.is_show_private_data || employee.is_show_download_photo) && (
-                <div className="flex justify-end gap-2 mt-3 pt-3 border-t">
-                  {employee.is_show_private_data && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-blue-600 hover:text-blue-800 min-h-[40px] min-w-[40px] touch-manipulation"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Handle view action
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faEye} />
-                    </Button>
-                  )}
-                  {employee.is_show_download_photo && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-green-600 hover:text-green-800 min-h-[40px] min-w-[40px] touch-manipulation"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Handle download action
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faDownload} />
-                    </Button>
-                  )}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">離職時間:</span>
+                  <span className="text-gray-900">
+                    {employee.terminated_at ? new Date(employee.terminated_at).toLocaleDateString() : '-'}
+                  </span>
                 </div>
-              )}
+              </div>
             </div>
           ))
         )}

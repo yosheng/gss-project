@@ -26,4 +26,5 @@ export type Employee = {
   is_show_download_photo: boolean | null;
   cmp_code: string | null;
   created_at: string | null;
+  terminated_at: string | null;
 };
