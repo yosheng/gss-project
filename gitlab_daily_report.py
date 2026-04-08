@@ -12,13 +12,16 @@ GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")  # 請在白虎面板環境變數設定
 
 # 通知自訂
 BOT_NAME = "例會小助手"
-BOT_ICON_EMOJI = ":frongwow:"  # 使用 Mattermost 內建圖標
+BOT_ICON_EMOJI = ":mcdd-work:"  # 使用 Mattermost 內建圖標
 
 # 時區
 TW_TZ = timezone(timedelta(hours=8))
 
-# LLM 初始化（優先使用 GOOGLE_API_KEY，其次 OPENAI_API_KEY）
+# LLM 初始化（優先順序：GROQ_API_KEY > GOOGLE_API_KEY > OPENAI_API_KEY）
 def _init_llm():
+    if os.getenv("GROQ_API_KEY"):
+        from langchain_groq import ChatGroq
+        return ChatGroq(model="llama-3.3-70b-versatile")
     if os.getenv("GOOGLE_API_KEY"):
         from langchain_google_genai import ChatGoogleGenerativeAI
         return ChatGoogleGenerativeAI(
@@ -31,7 +34,7 @@ def _init_llm():
     if os.getenv("OPENAI_API_KEY"):
         from langchain_openai import ChatOpenAI
         return ChatOpenAI(model="gpt-4o-mini")
-    logging.warning("未設定 GOOGLE_API_KEY 或 OPENAI_API_KEY，AI 總結功能將停用。")
+    logging.warning("未設定 GROQ_API_KEY / GOOGLE_API_KEY / OPENAI_API_KEY，AI 總結功能將停用。")
     return None
 
 LLM = _init_llm()
