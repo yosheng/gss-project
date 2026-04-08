@@ -1,8 +1,9 @@
 import requests
 import os
-import json
 import logging
 from datetime import datetime, timedelta, timezone
+
+from langchain_core.messages import HumanMessage, SystemMessage
 
 # ================= 配置區域 =================
 GITLAB_URL = "https://git.gss.com.tw"
@@ -15,6 +16,19 @@ BOT_ICON_EMOJI = ":frongwow:"  # 使用 Mattermost 內建圖標
 
 # 時區
 TW_TZ = timezone(timedelta(hours=8))
+
+# LLM 初始化（優先使用 GOOGLE_API_KEY，其次 OPENAI_API_KEY）
+def _init_llm():
+    if os.getenv("GOOGLE_API_KEY"):
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        return ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    if os.getenv("OPENAI_API_KEY"):
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(model="gpt-4o-mini")
+    logging.warning("未設定 GOOGLE_API_KEY 或 OPENAI_API_KEY，AI 總結功能將停用。")
+    return None
+
+LLM = _init_llm()
 
 # 日誌配置
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -105,6 +119,44 @@ def format_message(new_records: dict) -> str:
     return "\n".join(lines)
 
 
+# ==================== AI 總結 ====================
+
+def summarize_with_llm(new_records: dict) -> str | None:
+    """
+    將事件記錄交給大模型總結，回傳總結文字。
+    失敗或未設定 API Key 時回傳 None。
+    """
+    if LLM is None:
+        return None
+
+    # 將記錄轉為結構化文字，供模型閱讀
+    lines = []
+    for record in new_records.values():
+        lines.append(
+            f"- [{record['created_at']}] 專案：{record['project_name']} "
+            f"| 動作：{record['action']} | 內容：{record['target']}"
+        )
+    records_text = "\n".join(lines)
+
+    system_prompt = (
+        f"你是一位技術工作彙報助手。以下是開發者 {USER_ID} 今日在 GitLab 上的活動記錄，"
+        "請根據這些原始事件整理出一份簡潔的工作摘要，格式為條列式繁體中文。"
+        "請依專案分組，合併相同專案的操作，突出重點貢獻，不要逐條重複原始記錄。"
+    )
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=f"以下是今日活動記錄：\n\n{records_text}\n\n幫我總結內容並條列出來"),
+    ]
+
+    try:
+        response = LLM.invoke(messages)
+        return response.content
+    except Exception as e:
+        logging.error(f"AI 總結失敗: {e}")
+        return None
+
+
 # ==================== 通知發送 ====================
 
 def send_notification(text: str) -> bool:
@@ -157,8 +209,11 @@ def check_gitlab():
         event_id = str(event.get("id"))
         new_records[event_id] = build_event_record(event)
 
+    # AI 總結（若無法總結則 fallback 為原始格式）
+    summary = summarize_with_llm(new_records)
+    msg = f"🤖 **AI 工作摘要**\n{summary}" if summary else format_message(new_records)
+
     # 組合訊息並發送
-    msg = format_message(new_records)
     success = send_notification(msg)
 
     if not success:
