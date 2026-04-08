@@ -21,7 +21,13 @@ TW_TZ = timezone(timedelta(hours=8))
 def _init_llm():
     if os.getenv("GOOGLE_API_KEY"):
         from langchain_google_genai import ChatGoogleGenerativeAI
-        return ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+        return ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            model_kwargs={
+                "generation_config": {"response_mime_type": "text/plain"},
+                "automatic_function_calling": {"disable": True},
+            },
+        )
     if os.getenv("OPENAI_API_KEY"):
         from langchain_openai import ChatOpenAI
         return ChatOpenAI(model="gpt-4o-mini")
