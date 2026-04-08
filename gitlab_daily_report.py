@@ -54,15 +54,16 @@ def get_project_info(project_id) -> tuple[str, str]:
     return f"ID:{project_id}", ""
 
 
-def fetch_gitlab_events(after_date: str) -> list:
+def fetch_gitlab_events(after_date: str, before_date: str) -> list:
     """
-    從 GitLab API 抓取指定日期之後的事件列表。
-    after_date 格式：YYYY-MM-DD
+    從 GitLab API 抓取指定日期區間的事件列表。
+    after_date / before_date 格式：YYYY-MM-DD
     回傳事件列表，失敗時回傳空列表。
     """
     url = f"{GITLAB_URL}/api/v4/users/{USER_ID}/events"
     params = {
         "after": after_date,
+        "before": before_date,
         "sort": "desc",
         "per_page": 100,
     }
@@ -101,8 +102,8 @@ def build_event_record(event: dict) -> dict:
         or event.get("target_title")
         or "查看詳細動態"
     )
-    created_at = datetime.fromisoformat(event["created_at"]).astimezone(TW_TZ).strftime("%Y-%m-%d %H:%M:%S")
-    sent_at = datetime.now(TW_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    created_at = datetime.fromisoformat(event["created_at"]).astimezone(TW_TZ).strftime("%H:%M:%S")
+    sent_at = datetime.now(TW_TZ).strftime("%H:%M:%S")
     return {
         "project_name": project_name,
         "action": action,
@@ -137,7 +138,7 @@ def aggregate_events(events: list) -> list[dict]:
 
         project_id = str(event.get("project_id", ""))
         project_name, _ = get_project_info(event.get("project_id"))
-        created_at = datetime.fromisoformat(event["created_at"]).astimezone(TW_TZ).strftime("%Y-%m-%d %H:%M:%S")
+        created_at = datetime.fromisoformat(event["created_at"]).astimezone(TW_TZ).strftime("%H:%M:%S")
 
         # 2. MR 相關事件分組
         if action in _MR_ACTION_PRIORITY:
@@ -269,14 +270,16 @@ def check_gitlab():
     1. 從 GitLab 抓取最近事件
     2. 合併成一則訊息發送至 Mattermost
     """
-    now_utc = datetime.now(timezone.utc)
-    # GitLab API 只接受日期篩選，用昨天確保能取到今天全部事件，再本地去重
-    api_after_date = (now_utc - timedelta(days=1)).date().isoformat()
+    today_tw = datetime.now(TW_TZ).date()
+    yesterday_tw = today_tw - timedelta(days=1)
+    # after = 前天、before = 今天，確保只取昨天整天的事件
+    api_after_date = (yesterday_tw - timedelta(days=1)).isoformat()
+    api_before_date = today_tw.isoformat()
 
-    logging.info(f"【{BOT_NAME}】啟動：掃描 {USER_ID} 於 {api_after_date} 後的 GitLab 工作成果")
+    logging.info(f"【{BOT_NAME}】啟動：掃描 {USER_ID} 於 {yesterday_tw} 的 GitLab 工作成果")
 
     # 抓取 GitLab 事件
-    events = fetch_gitlab_events(api_after_date)
+    events = fetch_gitlab_events(api_after_date, api_before_date)
     if not events:
         logging.info("今天休息不需要彙報🥳")
         return
