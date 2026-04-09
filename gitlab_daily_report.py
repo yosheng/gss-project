@@ -17,11 +17,18 @@ BOT_ICON_EMOJI = ":mcdd-work:"  # 使用 Mattermost 內建圖標
 # 時區
 TW_TZ = timezone(timedelta(hours=8))
 
-# LLM 初始化（優先順序：GROQ_API_KEY > GOOGLE_API_KEY > OPENAI_API_KEY）
+# LLM 初始化（優先順序：GROQ_API_KEY > AZURE_OPENAI_API_KEY > GOOGLE_API_KEY > OPENAI_API_KEY）
 def _init_llm():
     if os.getenv("GROQ_API_KEY"):
         from langchain_groq import ChatGroq
         return ChatGroq(model="llama-3.3-70b-versatile")
+    if os.getenv("AZURE_OPENAI_API_KEY"):
+        from langchain_openai import AzureChatOpenAI
+        return AzureChatOpenAI(
+            azure_endpoint="https://oai-sit-casebridge-japaneast.openai.azure.com/",
+            azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini"),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-08-01-preview"),
+        )
     if os.getenv("GOOGLE_API_KEY"):
         from langchain_google_genai import ChatGoogleGenerativeAI
         return ChatGoogleGenerativeAI(
@@ -34,7 +41,7 @@ def _init_llm():
     if os.getenv("OPENAI_API_KEY"):
         from langchain_openai import ChatOpenAI
         return ChatOpenAI(model="gpt-4o-mini")
-    logging.warning("未設定 GROQ_API_KEY / GOOGLE_API_KEY / OPENAI_API_KEY，AI 總結功能將停用。")
+    logging.warning("未設定任何 LLM API Key，AI 總結功能將停用。")
     return None
 
 LLM = _init_llm()
