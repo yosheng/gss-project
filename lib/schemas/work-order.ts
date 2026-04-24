@@ -25,7 +25,7 @@ export interface WorkOrderPayload {
   message: null;
   status: false;
   favoriteContOppId: "7016";
-  suppDeptItems: "U236";
+  suppDeptItems: "UR10";
   sdateTime: string; // Format: "YYYY-MM-DDTHH:mm:ss.sssZ"
   edateTime: string; // Format: "YYYY-MM-DDTHH:mm:ss.sssZ"
   description: string;

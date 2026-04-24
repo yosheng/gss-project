@@ -37,7 +37,7 @@ export class GssApiService {
         message: null,
         status: false,
         favoriteContOppId: "7016",
-        suppDeptItems: "U236"
+        suppDeptItems: "UR10"
       };
 
       const sanitizedDate = InputSanitizer.sanitizeDate(formData.workDate);
