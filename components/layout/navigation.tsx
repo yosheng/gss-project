@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faHome,
@@ -13,27 +14,21 @@ import {
   faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import { Button } from '@/components/ui/button';
-import { routeConfigs, type RouteKey } from '@/lib/router';
+import { routeConfigs } from '@/lib/router';
+import { logout } from '@/app/actions/auth';
 
-interface NavigationProps {
-  currentRoute: RouteKey;
-  onNavigate: (route: RouteKey) => void;
-  onLogout: () => void;
-}
-
-export default function Navigation({ currentRoute, onNavigate, onLogout }: NavigationProps) {
+export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+  const router = useRouter();
+  const pathname = usePathname();
+  const handleNavigate = (path: string) => {
+    router.push(path);
+    setIsMobileMenuOpen(false);
   };
 
-  const handleNavigate = (route: RouteKey) => {
-    onNavigate(route);
-    setIsMobileMenuOpen(false); // 關閉行動版選單
-  };
+  const handleLogout = () => logout();
 
-  const getRouteIcon = (routeKey: RouteKey) => {
+  const getRouteIcon = (routeKey: string) => {
     switch (routeKey) {
       case 'work-order':
         return faClipboardList;
@@ -66,8 +61,8 @@ export default function Navigation({ currentRoute, onNavigate, onLogout }: Navig
             {routeConfigs.map((route) => (
               <Button
                 key={route.key}
-                variant={currentRoute === route.key ? "default" : "ghost"}
-                onClick={() => handleNavigate(route.key)}
+                variant={pathname === route.path ? "default" : "ghost"}
+                onClick={() => handleNavigate(route.path)}
                 className="flex items-center gap-2 transition-smooth"
               >
                 <FontAwesomeIcon icon={getRouteIcon(route.key)} />
@@ -79,7 +74,7 @@ export default function Navigation({ currentRoute, onNavigate, onLogout }: Navig
             
             <Button
               variant="outline"
-              onClick={onLogout}
+              onClick={handleLogout}
               className="flex items-center gap-2 transition-smooth hover:bg-red-50 hover:border-red-200"
             >
               <FontAwesomeIcon icon={faSignOutAlt} />
@@ -92,7 +87,7 @@ export default function Navigation({ currentRoute, onNavigate, onLogout }: Navig
             <Button
               variant="ghost"
               size="sm"
-              onClick={toggleMobileMenu}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-3 min-h-[44px] min-w-[44px] touch-manipulation"
               aria-label={isMobileMenuOpen ? "關閉選單" : "開啟選單"}
             >
@@ -111,8 +106,8 @@ export default function Navigation({ currentRoute, onNavigate, onLogout }: Navig
               {routeConfigs.map((route) => (
                 <Button
                   key={route.key}
-                  variant={currentRoute === route.key ? "default" : "ghost"}
-                  onClick={() => handleNavigate(route.key)}
+                  variant={pathname === route.path ? "default" : "ghost"}
+                  onClick={() => handleNavigate(route.path)}
                   className="w-full justify-start flex items-center gap-3 py-3 px-4 text-base min-h-[48px] touch-manipulation"
                 >
                   <FontAwesomeIcon icon={getRouteIcon(route.key)} className="w-5 h-5" />
@@ -123,7 +118,7 @@ export default function Navigation({ currentRoute, onNavigate, onLogout }: Navig
               <div className="border-t pt-2 mt-3">
                 <Button
                   variant="outline"
-                  onClick={onLogout}
+                  onClick={handleLogout}
                   className="w-full justify-start flex items-center gap-3 py-3 px-4 text-base min-h-[48px] touch-manipulation hover:bg-red-50 hover:border-red-200"
                 >
                   <FontAwesomeIcon icon={faSignOutAlt} className="w-5 h-5" />

@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { workOrderSchema, WorkOrderFormData } from '@/lib/schemas/work-order';
 import { GssApiService } from '@/lib/gss-api';
 import { WorkOrderError, SecureErrorLogger, ERROR_CODES } from '@/lib/errors';
-import { useAuth } from '@/components/auth-provider';
 import {
   Collapsible,
   CollapsibleContent,
@@ -23,7 +22,6 @@ interface WorkOrderFormProps {
 
 const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitError }: WorkOrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
   const [authToken, setAuthToken] = useState('');
   const [savedToken, setSavedToken] = useState<string | null>(null);
 

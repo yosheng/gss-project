@@ -2,28 +2,15 @@
 
 import { ReactNode, Suspense } from 'react';
 import Navigation from './navigation';
-import { type RouteKey } from '@/lib/router';
 
 interface MainLayoutProps {
   children: ReactNode;
-  currentRoute: RouteKey;
-  onNavigate: (route: RouteKey) => void;
-  onLogout: () => void;
 }
 
-export default function MainLayout({ 
-  children, 
-  currentRoute, 
-  onNavigate, 
-  onLogout 
-}: MainLayoutProps) {
+export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation 
-        currentRoute={currentRoute}
-        onNavigate={onNavigate}
-        onLogout={onLogout}
-      />
+      <Navigation />
       
       <main className="min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)]">
         <Suspense fallback={

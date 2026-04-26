@@ -10,11 +10,7 @@ import EmployeeSearch from '@/components/employees/employee-search';
 import EmployeeList from '@/components/employees/employee-list';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
-interface EmployeesPageProps {
-  // No navigation handler needed as this is now a standalone page component
-}
-
-export default function EmployeesPage({}: EmployeesPageProps) {
+export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,7 +20,6 @@ export default function EmployeesPage({}: EmployeesPageProps) {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Memoize unique departments, statuses, and titles to prevent unnecessary recalculations
   const departments = useMemo(() =>
     Array.from(new Set(employees.map(emp => emp.dep_name_act || emp.dep_code).filter(Boolean))) as string[],
     [employees]
@@ -40,11 +35,8 @@ export default function EmployeesPage({}: EmployeesPageProps) {
     [employees]
   );
 
-  // Memoize filtered employees to prevent unnecessary recalculations
   const filteredEmployees = useMemo(() => {
     let filtered = employees;
-
-    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(employee =>
         employee.c_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,30 +46,11 @@ export default function EmployeesPage({}: EmployeesPageProps) {
         employee.tit_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(employee => employee.job_status === statusFilter);
-    }
-
-    // Apply department filter
-    if (departmentFilter !== 'all') {
-      filtered = filtered.filter(employee =>
-        (employee.dep_name_act || employee.dep_code) === departmentFilter
-      );
-    }
-
-    // Apply title filter
-    if (titleFilter !== 'all') {
-      filtered = filtered.filter(employee => employee.tit_name === titleFilter);
-    }
-
+    if (statusFilter !== 'all') filtered = filtered.filter(e => e.job_status === statusFilter);
+    if (departmentFilter !== 'all') filtered = filtered.filter(e => (e.dep_name_act || e.dep_code) === departmentFilter);
+    if (titleFilter !== 'all') filtered = filtered.filter(e => e.tit_name === titleFilter);
     return filtered;
   }, [employees, searchTerm, statusFilter, departmentFilter, titleFilter]);
-
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
 
   const fetchEmployees = useCallback(async () => {
     try {
@@ -85,12 +58,8 @@ export default function EmployeesPage({}: EmployeesPageProps) {
         .from('gss_employees')
         .select('*')
         .order('emp_id', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching employees:', error);
-      } else {
-        setEmployees(data || []);
-      }
+      if (error) console.error('Error fetching employees:', error);
+      else setEmployees(data || []);
     } catch (error) {
       console.error('Unexpected error:', error);
     } finally {
@@ -98,12 +67,12 @@ export default function EmployeesPage({}: EmployeesPageProps) {
     }
   }, []);
 
+  useEffect(() => { fetchEmployees(); }, []);
+
   const openEmployeeDetail = useCallback((employee: Employee) => {
     setSelectedEmployee(employee);
     setIsModalOpen(true);
   }, []);
-
-
 
   if (loading) {
     return (
@@ -130,13 +99,10 @@ export default function EmployeesPage({}: EmployeesPageProps) {
                   <CardDescription className="text-base sm:text-lg mt-1">
                     總員工數: <span className="font-semibold">{employees.length}</span>
                     {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' || titleFilter !== 'all' ?
-                      <span className="block sm:inline"> • 篩選結果: {filteredEmployees.length}</span> : ''
-                    }
+                      <span className="block sm:inline"> • 篩選結果: {filteredEmployees.length}</span> : ''}
                   </CardDescription>
                 </div>
               </div>
-
-              {/* Search and Filter Controls */}
               <EmployeeSearch
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
@@ -152,7 +118,6 @@ export default function EmployeesPage({}: EmployeesPageProps) {
               />
             </div>
           </CardHeader>
-
           <CardContent>
             <EmployeeList
               employees={filteredEmployees}
@@ -163,7 +128,6 @@ export default function EmployeesPage({}: EmployeesPageProps) {
           </CardContent>
         </Card>
       </div>
-
       <EmployeeDetailModal
         employee={selectedEmployee}
         isOpen={isModalOpen}

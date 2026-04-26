@@ -1,42 +1,43 @@
 import { supabase } from './supabase';
 import { User } from '@supabase/supabase-js';
 
-const LOCAL_AUTH_KEY = 'gss_local_auth';
-const LOCAL_AUTH_EXPIRY_MS = 8 * 60 * 60 * 1000; // 8 hours
+const AUTH_COOKIE_NAME = 'gss_auth';
+const AUTH_COOKIE_MAX_AGE = 8 * 60 * 60; // 8 hours in seconds
 
-interface LocalAuthData {
+interface AuthCookieData {
   user: { id: string; email: string; user_metadata: { name: string } };
   expiresAt: number;
 }
 
-export function saveLocalAuth(user: LocalAuthData['user']): void {
+export function saveAuthCookie(user: AuthCookieData['user']): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify({
+  const data: AuthCookieData = {
     user,
-    expiresAt: Date.now() + LOCAL_AUTH_EXPIRY_MS,
-  }));
+    expiresAt: Date.now() + AUTH_COOKIE_MAX_AGE * 1000,
+  };
+  document.cookie = `${AUTH_COOKIE_NAME}=${encodeURIComponent(JSON.stringify(data))}; max-age=${AUTH_COOKIE_MAX_AGE}; path=/; SameSite=Lax`;
 }
 
-export function loadLocalAuth(): LocalAuthData['user'] | null {
+export function loadAuthCookie(): AuthCookieData['user'] | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem(LOCAL_AUTH_KEY);
-    if (!raw) return null;
-    const data: LocalAuthData = JSON.parse(raw);
+    const match = document.cookie.match(new RegExp(`(?:^|; )${AUTH_COOKIE_NAME}=([^;]*)`));
+    if (!match) return null;
+    const data: AuthCookieData = JSON.parse(decodeURIComponent(match[1]));
     if (Date.now() > data.expiresAt) {
-      localStorage.removeItem(LOCAL_AUTH_KEY);
+      clearAuthCookie();
       return null;
     }
     return data.user;
   } catch {
-    localStorage.removeItem(LOCAL_AUTH_KEY);
+    clearAuthCookie();
     return null;
   }
 }
 
-export function clearLocalAuth(): void {
+export function clearAuthCookie(): void {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(LOCAL_AUTH_KEY);
+  document.cookie = `${AUTH_COOKIE_NAME}=; max-age=0; path=/`;
 }
 
 export async function signInWithEmail(email: string, password: string) {
@@ -48,7 +49,7 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function signOut() {
-  clearLocalAuth();
+  clearAuthCookie();
   const { error } = await supabase.auth.signOut();
   return { error };
 }
@@ -64,7 +65,7 @@ export async function signInWithEnvCredentials(username: string, password: strin
             email: 'admin@example.com',
             user_metadata: { name: 'Admin User' },
         };
-        saveLocalAuth(user);
+        saveAuthCookie(user);
         return { data: { user, session: null }, error: null };
     } else {
         // 如果不匹配，返回错误
