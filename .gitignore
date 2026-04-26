@@ -40,4 +40,7 @@ next-env.d.ts
 /.idea/project.iml
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/vcs.xml
+/.idea/gss-project.iml
+/.idea/modules.xml
 /data/*.json
+/CLAUDE.local.md

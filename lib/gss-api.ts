@@ -1,5 +1,5 @@
 
-import { WorkOrderFormData, WorkOrderPayload, WorkOrderResponse } from './schemas/work-order';
+import { WorkOrderFormData, WorkOrderPayload, WorkOrderResponse, calculateWorkHours } from './schemas/work-order';
 import { WorkOrderError, ERROR_CODES, SecureErrorLogger } from './errors';
 import { ApiConfig, InputSanitizer } from './api-config';
 import { WorkOrderListItem, WorkOrderListResponse, WorkOrderListFilter, FetchWorkOrderListPayload } from './types/work-order-list';
@@ -23,13 +23,12 @@ export class GssApiService {
       const apiUrl = `${apiConfig.getApiUrl()}/AMApi/AMMaintainWeb/InsertData/AMMaintainWeb`;
 
       // This fixed base payload seems to be a core requirement.
-      const fixedPayloadBase: Omit<WorkOrderPayload, 'sdateTime' | 'edateTime' | 'description'> = {
+      const fixedPayloadBase: Omit<WorkOrderPayload, 'sdateTime' | 'edateTime' | 'description' | 'ttlHours'> = {
         actNo: null,
         actTypeId: "Be",
         custNo: "GSS",
         caseContNo: "O202601234",
         prdPjtNo: "內部專案-2026011900016 - Vital  Casebridge 產品增修計畫書_2026年",
-        ttlHours: 8,
         isPrnToCust: "Be001",
         attachFileName: null,
         isAttachFile: "00200",
@@ -41,10 +40,13 @@ export class GssApiService {
       };
 
       const sanitizedDate = InputSanitizer.sanitizeDate(formData.workDate);
+      const sdateTime = new Date(`${sanitizedDate}T${formData.startTime}:00`).toISOString();
+      const edateTime = new Date(`${sanitizedDate}T${formData.endTime}:00`).toISOString();
       const payload: WorkOrderPayload = {
         ...fixedPayloadBase,
-        sdateTime: `${sanitizedDate}T01:00:00.000Z`,
-        edateTime: `${sanitizedDate}T10:00:00.000Z`,
+        ttlHours: calculateWorkHours(formData.startTime, formData.endTime),
+        sdateTime,
+        edateTime,
         description: InputSanitizer.sanitizeString(formData.description, 1000)
       };
 

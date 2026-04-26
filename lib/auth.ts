@@ -1,6 +1,45 @@
 import { supabase } from './supabase';
 import { User } from '@supabase/supabase-js';
 
+const AUTH_COOKIE_NAME = 'gss_auth';
+const AUTH_COOKIE_MAX_AGE = 8 * 60 * 60; // 8 hours in seconds
+
+interface AuthCookieData {
+  user: { id: string; email: string; user_metadata: { name: string } };
+  expiresAt: number;
+}
+
+export function saveAuthCookie(user: AuthCookieData['user']): void {
+  if (typeof window === 'undefined') return;
+  const data: AuthCookieData = {
+    user,
+    expiresAt: Date.now() + AUTH_COOKIE_MAX_AGE * 1000,
+  };
+  document.cookie = `${AUTH_COOKIE_NAME}=${encodeURIComponent(JSON.stringify(data))}; max-age=${AUTH_COOKIE_MAX_AGE}; path=/; SameSite=Lax`;
+}
+
+export function loadAuthCookie(): AuthCookieData['user'] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${AUTH_COOKIE_NAME}=([^;]*)`));
+    if (!match) return null;
+    const data: AuthCookieData = JSON.parse(decodeURIComponent(match[1]));
+    if (Date.now() > data.expiresAt) {
+      clearAuthCookie();
+      return null;
+    }
+    return data.user;
+  } catch {
+    clearAuthCookie();
+    return null;
+  }
+}
+
+export function clearAuthCookie(): void {
+  if (typeof window === 'undefined') return;
+  document.cookie = `${AUTH_COOKIE_NAME}=; max-age=0; path=/`;
+}
+
 export async function signInWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -10,6 +49,7 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function signOut() {
+  clearAuthCookie();
   const { error } = await supabase.auth.signOut();
   return { error };
 }
@@ -20,20 +60,13 @@ export async function signInWithEnvCredentials(username: string, password: strin
     const envPassword = process.env.NEXT_PUBLIC_PASSWORD;
     // 检查用户名和密码是否匹配环境变量中的值
     if (username === envUsername && password === envPassword) {
-        // 如果匹配，返回成功状态，模拟登录成功
-        return {
-            data: {
-                user: {
-                    id: 'admin-user-id',
-                    email: 'admin@example.com',
-                    user_metadata: {
-                        name: 'Admin User'
-                    }
-                },
-                session: null
-            },
-            error: null
+        const user = {
+            id: 'admin-user-id',
+            email: 'admin@example.com',
+            user_metadata: { name: 'Admin User' },
         };
+        saveAuthCookie(user);
+        return { data: { user, session: null }, error: null };
     } else {
         // 如果不匹配，返回错误
         return {

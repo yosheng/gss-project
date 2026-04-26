@@ -12,9 +12,7 @@ export default function EmployeeStatisticsPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
+  useEffect(() => { fetchEmployees(); }, []);
 
   const fetchEmployees = async () => {
     try {
@@ -22,12 +20,8 @@ export default function EmployeeStatisticsPage() {
         .from('gss_employees')
         .select('*')
         .order('emp_id', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching employees:', error);
-      } else {
-        setEmployees(data || []);
-      }
+      if (error) console.error('Error fetching employees:', error);
+      else setEmployees(data || []);
     } catch (error) {
       console.error('Unexpected error:', error);
     } finally {
@@ -35,132 +29,48 @@ export default function EmployeeStatisticsPage() {
     }
   };
 
-  // 統計職稱分布
   const titleStatistics = useMemo(() => {
     const titleMap = new Map<string, number>();
-
     employees.forEach(emp => {
       const title = emp.tit_name || '未設定';
       titleMap.set(title, (titleMap.get(title) || 0) + 1);
     });
-
-    return Array.from(titleMap.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    return Array.from(titleMap.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [employees]);
 
-  // 統計部門分布
   const departmentStatistics = useMemo(() => {
     const deptMap = new Map<string, number>();
-
     employees.forEach(emp => {
       const dept = emp.dep_name_act || emp.dep_code || '未設定';
       deptMap.set(dept, (deptMap.get(dept) || 0) + 1);
     });
-
-    return Array.from(deptMap.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    return Array.from(deptMap.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [employees]);
 
-  // 職稱餅圖配置
-  const titleChartOption = {
-    title: {
-      text: '職稱分布',
-      left: 'center',
-      top: 20,
-      textStyle: {
-        fontSize: 18,
-        fontWeight: 'bold'
-      }
-    },
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} 人 ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      left: 'left',
-      top: 60,
-      type: 'scroll',
-      pageButtonPosition: 'end'
-    },
-    series: [
-      {
-        name: '職稱',
-        type: 'pie',
-        radius: ['40%', '70%'],
-        center: ['60%', '55%'],
-        avoidLabelOverlap: true,
-        itemStyle: {
-          borderRadius: 8,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: true,
-          formatter: '{b}: {d}%'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        data: titleStatistics
-      }
-    ]
+  const chartBase = {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} 人 ({d}%)' },
+    legend: { orient: 'vertical', left: 'left', top: 60, type: 'scroll', pageButtonPosition: 'end' },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      center: ['60%', '55%'],
+      avoidLabelOverlap: true,
+      itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+      label: { show: true, formatter: '{b}: {d}%' },
+      emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
+    }]
   };
 
-  // 部門餅圖配置
+  const titleChartOption = {
+    ...chartBase,
+    title: { text: '職稱分布', left: 'center', top: 20, textStyle: { fontSize: 18, fontWeight: 'bold' } },
+    series: [{ ...chartBase.series[0], name: '職稱', data: titleStatistics }]
+  };
+
   const departmentChartOption = {
-    title: {
-      text: '部門分布',
-      left: 'center',
-      top: 20,
-      textStyle: {
-        fontSize: 18,
-        fontWeight: 'bold'
-      }
-    },
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} 人 ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      left: 'left',
-      top: 60,
-      type: 'scroll',
-      pageButtonPosition: 'end'
-    },
-    series: [
-      {
-        name: '部門',
-        type: 'pie',
-        radius: ['40%', '70%'],
-        center: ['60%', '55%'],
-        avoidLabelOverlap: true,
-        itemStyle: {
-          borderRadius: 8,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: true,
-          formatter: '{b}: {d}%'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        data: departmentStatistics
-      }
-    ]
+    ...chartBase,
+    title: { text: '部門分布', left: 'center', top: 20, textStyle: { fontSize: 18, fontWeight: 'bold' } },
+    series: [{ ...chartBase.series[0], name: '部門', data: departmentStatistics }]
   };
 
   if (loading) {
@@ -186,38 +96,21 @@ export default function EmployeeStatisticsPage() {
           </CardDescription>
         </CardHeader>
       </Card>
-
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* 職稱分布圖表 */}
         <Card className="shadow-lg">
           <CardContent className="pt-6">
-            <ReactECharts
-              option={titleChartOption}
-              style={{ height: '500px' }}
-              opts={{ renderer: 'canvas' }}
-            />
+            <ReactECharts option={titleChartOption} style={{ height: '500px' }} opts={{ renderer: 'canvas' }} />
           </CardContent>
         </Card>
-
-        {/* 部門分布圖表 */}
         <Card className="shadow-lg">
           <CardContent className="pt-6">
-            <ReactECharts
-              option={departmentChartOption}
-              style={{ height: '500px' }}
-              opts={{ renderer: 'canvas' }}
-            />
+            <ReactECharts option={departmentChartOption} style={{ height: '500px' }} opts={{ renderer: 'canvas' }} />
           </CardContent>
         </Card>
       </div>
-
-      {/* 統計數據表格 */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
-        {/* 職稱統計表 */}
         <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">職稱統計明細</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg font-semibold">職稱統計明細</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -233,9 +126,7 @@ export default function EmployeeStatisticsPage() {
                     <tr key={index} className="border-t dark:border-gray-700">
                       <td className="px-4 py-2">{item.name}</td>
                       <td className="px-4 py-2 text-right">{item.value}</td>
-                      <td className="px-4 py-2 text-right">
-                        {((item.value / employees.length) * 100).toFixed(1)}%
-                      </td>
+                      <td className="px-4 py-2 text-right">{((item.value / employees.length) * 100).toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -243,12 +134,8 @@ export default function EmployeeStatisticsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* 部門統計表 */}
         <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">部門統計明細</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg font-semibold">部門統計明細</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -264,9 +151,7 @@ export default function EmployeeStatisticsPage() {
                     <tr key={index} className="border-t dark:border-gray-700">
                       <td className="px-4 py-2">{item.name}</td>
                       <td className="px-4 py-2 text-right">{item.value}</td>
-                      <td className="px-4 py-2 text-right">
-                        {((item.value / employees.length) * 100).toFixed(1)}%
-                      </td>
+                      <td className="px-4 py-2 text-right">{((item.value / employees.length) * 100).toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>
