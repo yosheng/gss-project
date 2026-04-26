@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { workOrderSchema, WorkOrderFormData } from '@/lib/schemas/work-order';
+import { workOrderSchema, WorkOrderFormData, calculateWorkHours } from '@/lib/schemas/work-order';
 import { GssApiService } from '@/lib/gss-api';
 import { WorkOrderError, SecureErrorLogger, ERROR_CODES } from '@/lib/errors';
 import {
@@ -41,18 +41,25 @@ const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitErr
     resolver: zodResolver(workOrderSchema),
     defaultValues: {
       workDate: '',
+      startTime: '09:00',
+      endTime: '19:00',
       description: ''
     }
   }), []);
-  
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
     clearErrors,
-    setValue
+    setValue,
+    watch
   } = useForm<WorkOrderFormData>(formConfig);
+
+  const startTime = watch('startTime');
+  const endTime = watch('endTime');
+  const ttlHours = startTime && endTime ? calculateWorkHours(startTime, endTime) : 0;
 
   // Set default date to today
   useEffect(() => {
@@ -82,9 +89,11 @@ const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitErr
       
       // Reset form on success
       setTimeout(() => {
-        reset({ 
+        reset({
           workDate: new Date().toISOString().split('T')[0],
-          description: '' 
+          startTime: '09:00',
+          endTime: '19:00',
+          description: ''
         });
         const textarea = document.querySelector('textarea[name="description"]') as HTMLTextAreaElement;
         if (textarea) {
@@ -165,6 +174,54 @@ const WorkOrderForm = memo(function WorkOrderForm({ onSubmitSuccess, onSubmitErr
                 {errors.workDate.message}
               </div>
             )}
+          </div>
+
+          {/* Work Time Fields */}
+          <div className="mb-4 sm:mb-5">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div>
+                <label
+                  htmlFor="startTime"
+                  className="block mb-2 font-[var(--font-weight-medium)] text-sm sm:text-[var(--font-size-md)] text-[var(--color-text)]"
+                >
+                  開始時間
+                </label>
+                <input
+                  type="time"
+                  id="startTime"
+                  {...register('startTime', { onChange: handleInputChange })}
+                  className="w-full px-3 sm:px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-base)] text-sm sm:text-[var(--font-size-md)] text-[var(--color-text)] bg-[var(--color-surface)] transition-all duration-[var(--duration-fast)] ease-[var(--ease-standard)] outline-none focus:border-[var(--color-primary)] focus:shadow-[var(--focus-ring)] cursor-pointer touch-manipulation"
+                />
+                {errors.startTime && (
+                  <div className="text-[var(--color-error)] text-[var(--font-size-sm)] mt-1">
+                    {errors.startTime.message}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label
+                  htmlFor="endTime"
+                  className="block mb-2 font-[var(--font-weight-medium)] text-sm sm:text-[var(--font-size-md)] text-[var(--color-text)]"
+                >
+                  結束時間
+                </label>
+                <input
+                  type="time"
+                  id="endTime"
+                  {...register('endTime', { onChange: handleInputChange })}
+                  className="w-full px-3 sm:px-4 py-3 border border-[var(--color-border)] rounded-[var(--radius-base)] text-sm sm:text-[var(--font-size-md)] text-[var(--color-text)] bg-[var(--color-surface)] transition-all duration-[var(--duration-fast)] ease-[var(--ease-standard)] outline-none focus:border-[var(--color-primary)] focus:shadow-[var(--focus-ring)] cursor-pointer touch-manipulation"
+                />
+                {errors.endTime && (
+                  <div className="text-[var(--color-error)] text-[var(--font-size-sm)] mt-1">
+                    {errors.endTime.message}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="mt-2 px-1 text-sm text-[var(--color-text-secondary)]">
+              計算工時：<span className="font-[var(--font-weight-medium)] text-[var(--color-text)]">{ttlHours} 小時</span>
+              <span className="ml-2 text-xs opacity-70">（已扣除 12:30~13:30、17:30~18:30 休息時間）</span>
+            </div>
           </div>
 
           {/* Description Field */}
