@@ -1,6 +1,44 @@
 import { supabase } from './supabase';
 import { User } from '@supabase/supabase-js';
 
+const LOCAL_AUTH_KEY = 'gss_local_auth';
+const LOCAL_AUTH_EXPIRY_MS = 8 * 60 * 60 * 1000; // 8 hours
+
+interface LocalAuthData {
+  user: { id: string; email: string; user_metadata: { name: string } };
+  expiresAt: number;
+}
+
+export function saveLocalAuth(user: LocalAuthData['user']): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify({
+    user,
+    expiresAt: Date.now() + LOCAL_AUTH_EXPIRY_MS,
+  }));
+}
+
+export function loadLocalAuth(): LocalAuthData['user'] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_AUTH_KEY);
+    if (!raw) return null;
+    const data: LocalAuthData = JSON.parse(raw);
+    if (Date.now() > data.expiresAt) {
+      localStorage.removeItem(LOCAL_AUTH_KEY);
+      return null;
+    }
+    return data.user;
+  } catch {
+    localStorage.removeItem(LOCAL_AUTH_KEY);
+    return null;
+  }
+}
+
+export function clearLocalAuth(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(LOCAL_AUTH_KEY);
+}
+
 export async function signInWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -10,6 +48,7 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function signOut() {
+  clearLocalAuth();
   const { error } = await supabase.auth.signOut();
   return { error };
 }
@@ -20,20 +59,13 @@ export async function signInWithEnvCredentials(username: string, password: strin
     const envPassword = process.env.NEXT_PUBLIC_PASSWORD;
     // 检查用户名和密码是否匹配环境变量中的值
     if (username === envUsername && password === envPassword) {
-        // 如果匹配，返回成功状态，模拟登录成功
-        return {
-            data: {
-                user: {
-                    id: 'admin-user-id',
-                    email: 'admin@example.com',
-                    user_metadata: {
-                        name: 'Admin User'
-                    }
-                },
-                session: null
-            },
-            error: null
+        const user = {
+            id: 'admin-user-id',
+            email: 'admin@example.com',
+            user_metadata: { name: 'Admin User' },
         };
+        saveLocalAuth(user);
+        return { data: { user, session: null }, error: null };
     } else {
         // 如果不匹配，返回错误
         return {

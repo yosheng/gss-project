@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { validateUserSession } from '@/lib/auth';
+import { validateUserSession, loadLocalAuth } from '@/lib/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -44,14 +44,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
         } else {
           const sessionUser = session?.user ?? null;
-          
-          // 驗證會話有效性
-          if (sessionUser && !validateUserSession(sessionUser)) {
-            console.warn('Invalid user session detected');
-            setUser(null);
-            setError('會話無效，請重新登入');
+
+          if (sessionUser) {
+            if (validateUserSession(sessionUser)) {
+              setUser(sessionUser);
+              setError(null);
+            } else {
+              console.warn('Invalid user session detected');
+              setUser(null);
+              setError('會話無效，請重新登入');
+            }
           } else {
-            setUser(sessionUser);
+            // No Supabase session — restore from local auth (env-credential login)
+            const localUser = loadLocalAuth();
+            setUser(localUser as User | null);
             setError(null);
           }
         }
