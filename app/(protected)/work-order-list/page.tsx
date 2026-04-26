@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faList, faSearch, faCalendar, faRefresh } from '@fortawesome/free-solid-svg-icons';
+import { faList, faSearch, faCalendar, faRefresh, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,6 +103,29 @@ export default function WorkOrderListPage() {
     setDateFilter(prev => ({ ...prev, [field]: value }));
   }, []);
 
+  const handleExport = useCallback(() => {
+    const formatExportDate = (dateString: string) => {
+      const d = new Date(dateString);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}/${m}/${day}`;
+    };
+    const escape = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['日期', '工作摘要'],
+      ...filteredWorkOrders.map(wo => [formatExportDate(wo.sdateTime), wo.description ?? ''])
+    ];
+    const csv = '﻿' + rows.map(r => r.map(escape).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `work-orders-${dateFilter.startDate}-${dateFilter.endDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filteredWorkOrders, dateFilter.startDate, dateFilter.endDate]);
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 lg:p-8 min-h-[calc(100vh-4rem)]">
@@ -131,15 +154,26 @@ export default function WorkOrderListPage() {
                   )}
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                onClick={fetchWorkOrders}
-                className="flex items-center gap-2 min-h-[44px] touch-manipulation"
-                disabled={loading}
-              >
-                <FontAwesomeIcon icon={faRefresh} className={loading ? 'animate-spin' : ''} />
-                重新整理
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={fetchWorkOrders}
+                  className="flex items-center gap-2 min-h-[44px] touch-manipulation"
+                  disabled={loading}
+                >
+                  <FontAwesomeIcon icon={faRefresh} className={loading ? 'animate-spin' : ''} />
+                  重新整理
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleExport}
+                  className="flex items-center gap-2 min-h-[44px] touch-manipulation"
+                  disabled={filteredWorkOrders.length === 0}
+                >
+                  <FontAwesomeIcon icon={faDownload} />
+                  匯出 CSV
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div className="relative">
