@@ -6,9 +6,21 @@ from datetime import datetime, timedelta, timezone
 from langchain_core.messages import HumanMessage, SystemMessage
 
 # ================= 配置區域 =================
-GITLAB_URL = "https://git.gss.com.tw"
 USER_ID = "yosheng_zhang"
-GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")  # 請在白虎面板環境變數設定
+
+# 多 GitLab 實例設定
+GITLAB_INSTANCES = [
+    {
+        "name": "公開庫",
+        "url": "https://gitlab.gss.com.tw",
+        "token": os.getenv("GITLAB_TOKEN"),
+    },
+    {
+        "name": "內部庫",
+        "url": "https://git.gss.com.tw",
+        "token": os.getenv("GIT_GSS_TOKEN"),
+    },
+]
 
 # 通知自訂
 BOT_NAME = "例會小助手"
@@ -52,47 +64,47 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # ==================== GitLab API ====================
 
-def get_project_info(project_id) -> tuple[str, str]:
+def get_project_info(instance: dict, project_id) -> tuple[str, str]:
     """將 Project ID 轉換為 (專案名稱, path_with_namespace)，失敗時回傳 fallback。"""
-    if not GITLAB_TOKEN:
+    if not instance["token"]:
         return f"ID:{project_id}", ""
 
-    url = f"{GITLAB_URL}/api/v4/projects/{project_id}"
-    headers = {"PRIVATE-TOKEN": GITLAB_TOKEN}
+    url = f"{instance['url']}/api/v4/projects/{project_id}"
+    headers = {"PRIVATE-TOKEN": instance["token"]}
     try:
         resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             data = resp.json()
             return data.get("name_with_namespace", f"ID:{project_id}"), data.get("path_with_namespace", "")
-        logging.warning(f"查詢專案 {project_id} 回傳 {resp.status_code}")
+        logging.warning(f"[{instance['name']}] 查詢專案 {project_id} 回傳 {resp.status_code}")
     except Exception as e:
-        logging.error(f"無法獲取專案 {project_id} 名稱: {e}")
+        logging.error(f"[{instance['name']}] 無法獲取專案 {project_id} 名稱: {e}")
     return f"ID:{project_id}", ""
 
 
-def fetch_gitlab_events(after_date: str, before_date: str) -> list:
+def fetch_gitlab_events(instance: dict, after_date: str, before_date: str) -> list:
     """
-    從 GitLab API 抓取指定日期區間的事件列表。
+    從指定 GitLab 實例抓取指定日期區間的事件列表。
     after_date / before_date 格式：YYYY-MM-DD
     回傳事件列表，失敗時回傳空列表。
     """
-    url = f"{GITLAB_URL}/api/v4/users/{USER_ID}/events"
+    url = f"{instance['url']}/api/v4/users/{USER_ID}/events"
     params = {
         "after": after_date,
         "before": before_date,
         "sort": "desc",
         "per_page": 100,
     }
-    headers = {"PRIVATE-TOKEN": GITLAB_TOKEN} if GITLAB_TOKEN else {}
+    headers = {"PRIVATE-TOKEN": instance["token"]} if instance["token"] else {}
 
     try:
         resp = requests.get(url, params=params, headers=headers, timeout=15)
-        logging.info(f"請求 GitLab API: {resp.url}")
+        logging.info(f"[{instance['name']}] 請求 GitLab API: {resp.url}")
         if resp.status_code == 200:
             return resp.json()
-        logging.error(f"GitLab API 回傳錯誤 ({resp.status_code}): {resp.text}")
+        logging.error(f"[{instance['name']}] GitLab API 回傳錯誤 ({resp.status_code}): {resp.text}")
     except Exception as e:
-        logging.error(f"GitLab API 請求失敗: {e}")
+        logging.error(f"[{instance['name']}] GitLab API 請求失敗: {e}")
     return []
 
 
@@ -105,33 +117,9 @@ _MR_ACTION_PRIORITY = {"opened": 1, "approved": 2, "accepted": 3}
 _IGNORED_ACTIONS = {"deleted", "pushed to"}
 
 
-def build_event_record(event: dict) -> dict:
+def aggregate_events(instance: dict, events: list) -> list[dict]:
     """
-    將單筆 GitLab event 轉為持久化用的記錄格式。
-    回傳：{ "project_name", "action", "target", "created_at", "sent_at" }
-    """
-    project_name, _ = get_project_info(event.get("project_id"))
-    action = event.get("action_name", "unknown")
-    push_data = event.get("push_data", {})
-    target = (
-        push_data.get("commit_title")
-        or event.get("target_title")
-        or "查看詳細動態"
-    )
-    created_at = datetime.fromisoformat(event["created_at"]).astimezone(TW_TZ).strftime("%H:%M:%S")
-    sent_at = datetime.now(TW_TZ).strftime("%H:%M:%S")
-    return {
-        "project_name": project_name,
-        "action": action,
-        "target": target,
-        "created_at": created_at,
-        "sent_at": sent_at,
-    }
-
-
-def aggregate_events(events: list) -> list[dict]:
-    """
-    方案 C：對原始事件進行預處理，減少送給 LLM 的資料量。
+    對原始事件進行預處理，減少送給 LLM 的資料量。
 
     規則：
     1. 過濾 `deleted`、`pushed to`（噪音動作）
@@ -140,7 +128,7 @@ def aggregate_events(events: list) -> list[dict]:
     3. Push 事件（pushed new）以 project_id 為 key 聚合，收集所有 commit_title
 
     回傳已聚合的記錄列表，每筆格式：
-    { "project_name", "action", "target"(or "commits"), "created_at" }
+    { "instance_name", "project_name", "action", "target"(or "commits"), "created_at" }
     """
     mr_bucket: dict[str, dict] = {}   # key: f"{project_id}::{target_title}"
     push_bucket: dict[str, dict] = {} # key: project_id
@@ -153,7 +141,7 @@ def aggregate_events(events: list) -> list[dict]:
             continue
 
         project_id = str(event.get("project_id", ""))
-        project_name, _ = get_project_info(event.get("project_id"))
+        project_name, _ = get_project_info(instance, event.get("project_id"))
         created_at = datetime.fromisoformat(event["created_at"]).astimezone(TW_TZ).strftime("%H:%M:%S")
 
         # 2. MR 相關事件分組
@@ -163,6 +151,7 @@ def aggregate_events(events: list) -> list[dict]:
             existing = mr_bucket.get(key)
             if existing is None or _MR_ACTION_PRIORITY[action] > _MR_ACTION_PRIORITY.get(existing["action"], 0):
                 mr_bucket[key] = {
+                    "instance_name": instance["name"],
                     "project_name": project_name,
                     "action": action,
                     "target": target_title,
@@ -175,6 +164,7 @@ def aggregate_events(events: list) -> list[dict]:
             commit_title = (event.get("push_data") or {}).get("commit_title", "")
             if project_id not in push_bucket:
                 push_bucket[project_id] = {
+                    "instance_name": instance["name"],
                     "project_name": project_name,
                     "action": "pushed",
                     "commits": [],
@@ -194,15 +184,16 @@ def aggregate_events(events: list) -> list[dict]:
     return result
 
 
-def format_message(new_records: dict) -> str:
+def format_message(aggregated: list[dict]) -> str:
     """
-    將新事件記錄組合成 Mattermost 訊息文字。
-    new_records 格式：{ "event_id": { "project_name", "action", "target", ... }, ... }
+    將聚合事件記錄組合成 Mattermost 訊息文字（AI 總結失敗時的 fallback）。
     """
-    count = len(new_records)
+    count = len(aggregated)
     lines = [f"🕵️‍♂️ **【{USER_ID}】活動報告（共 {count} 筆）**"]
-    for record in new_records.values():
-        lines.append(f"- 專案: `{record['project_name']}`| 時間: {record['created_at']}")
+    for record in aggregated:
+        lines.append(
+            f"- [{record['instance_name']}] 專案: `{record['project_name']}`| 時間: {record['created_at']}"
+        )
         lines.append(f"  - 動作: `{record['action']}` | 內容: {record['target']}")
     return "\n".join(lines)
 
@@ -223,20 +214,20 @@ def summarize_with_llm(aggregated: list[dict]) -> str | None:
         if record["action"] == "pushed":
             count = record.get("commit_count", 1)
             lines.append(
-                f"- [{record['created_at']}] 專案：{record['project_name']} "
+                f"- [{record['created_at']}] 環境：{record['instance_name']} | 專案：{record['project_name']} "
                 f"| 推送 {count} 次 commit：{record['target']}"
             )
         else:
             lines.append(
-                f"- [{record['created_at']}] 專案：{record['project_name']} "
+                f"- [{record['created_at']}] 環境：{record['instance_name']} | 專案：{record['project_name']} "
                 f"| MR 狀態：{record['action']} | 標題：{record['target']}"
             )
     records_text = "\n".join(lines)
 
     system_prompt = (
-        f"你是一位技術工作彙報助手。以下是開發者 {USER_ID} 今日在 GitLab 上的活動記錄，"
+        f"你是一位技術工作彙報助手。以下是開發者 {USER_ID} 今日在 GitLab 上的活動記錄（涵蓋公開與內部環境兩個環境），"
         "請根據這些原始事件整理出一份簡潔的工作摘要，格式為條列式繁體中文。"
-        "請依專案分組，合併相同專案的操作，突出重點貢獻，不要逐條重複原始記錄。"
+        "請依環境與專案分組，合併相同專案的操作，突出重點貢獻，不要逐條重複原始記錄。"
     )
 
     messages = [
@@ -283,8 +274,8 @@ def send_notification(text: str) -> bool:
 def check_gitlab():
     """
     主監控流程：
-    1. 從 GitLab 抓取最近事件
-    2. 合併成一則訊息發送至 Mattermost
+    1. 從所有 GitLab 實例抓取最近事件
+    2. 合併聚合後送 AI 總結，組成一則訊息發送至 Mattermost
     """
     today_tw = datetime.now(TW_TZ).date()
     yesterday_tw = today_tw - timedelta(days=1)
@@ -294,23 +285,25 @@ def check_gitlab():
 
     logging.info(f"【{BOT_NAME}】啟動：掃描 {USER_ID} 於 {yesterday_tw} 的 GitLab 工作成果")
 
-    # 抓取 GitLab 事件
-    events = fetch_gitlab_events(api_after_date, api_before_date)
-    if not events:
-        logging.info("今天休息不需要彙報🥳")
-        return
+    # 從所有實例抓取並聚合事件
+    all_aggregated: list[dict] = []
+    for instance in GITLAB_INSTANCES:
+        if not instance["token"]:
+            logging.warning(f"[{instance['name']}] 未設定 Token，跳過。")
+            continue
+        events = fetch_gitlab_events(instance, api_after_date, api_before_date)
+        if events:
+            all_aggregated.extend(aggregate_events(instance, events))
 
-    # 聚合事件（方案 C：去重 + 分組）
-    aggregated = aggregate_events(events)
-    if not aggregated:
+    if not all_aggregated:
         logging.info("今天休息不需要彙報🥳")
         return
 
     # AI 總結（若無法總結則 fallback 為原始格式）
-    summary = summarize_with_llm(aggregated)
-    msg = f"🤖 **AI 工作摘要**\n{summary}" if summary else format_message({str(i): r for i, r in enumerate(aggregated)})
+    summary = summarize_with_llm(all_aggregated)
+    msg = f"🤖 **AI 工作摘要**\n{summary}" if summary else format_message(all_aggregated)
 
-    # 組合訊息並發送
+    # 發送通知
     success = send_notification(msg)
 
     if not success:
