@@ -18,6 +18,8 @@ SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
 API_AUTH_TOKEN = os.getenv("API_AUTH_TOKEN")
 API_URL = 'https://assistant.gss.com.tw/QuickSearchApi/index/extendrequest/index/SearchEmployee'
+TOKEN_VALIDATE_URL = 'https://assistant.gss.com.tw/QuickSearchApi/auth/tokenvalidate'
+GSS_NOTIFY_WEBHOOK_URL = os.getenv("GSS_NOTIFY_WEBHOOK_URL")
 TABLE_NAME = 'gss_employees'
 DATA_DIR = 'data'  # 用於存放 JSON 檔案的資料夾
 
@@ -63,6 +65,44 @@ def camel_to_snake(name):
 
 
 # --- 核心功能 ---
+def send_notification(text: str) -> bool:
+    """發送 Mattermost webhook 通知。"""
+    if not GSS_NOTIFY_WEBHOOK_URL:
+        print("⚠️  未設定 GSS_NOTIFY_WEBHOOK_URL，無法發送通知。")
+        return False
+
+    payload = {
+        "username": "員工小助手",
+        "icon_emoji": ":robot:",
+        "text": text,
+    }
+    try:
+        response = requests.post(GSS_NOTIFY_WEBHOOK_URL, json=payload, timeout=10)
+        return response.status_code in (200, 201)
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 通知發送失敗: {e}")
+        return False
+
+
+def validate_token() -> bool:
+    """驗證 API_AUTH_TOKEN 是否有效，失效時發送 webhook 通知。"""
+    print("🔑 正在驗證 API Token...")
+    try:
+        response = requests.get(TOKEN_VALIDATE_URL, headers=HEADERS, timeout=10)
+        response.raise_for_status()
+        if response.text.strip().lower() == 'true':
+            print("✅ Token 驗證成功。")
+            return True
+        print("❌ Token 已失效（API 回傳 false）。")
+        send_notification("⚠️ GSS API Token 已失效，請重新取得 Token 並更新 .env 檔案。")
+        return False
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Token 驗證請求失敗: {e}")
+        from http import HTTPStatus
+        send_notification(f"⚠️ GSS API Token 驗證失敗：{HTTPStatus(e.response.status_code).phrase} {e.response.text}")
+        return False
+
+
 def fetch_and_save_from_api():
     """從 API 爬取所有員工資料，並將每頁結果存為 JSON 檔案。"""
     # 確保 data 資料夾存在
@@ -308,6 +348,11 @@ def main():
     parser.add_argument('--source', type=str, choices=['api', 'local'], default='api',
                         help="選擇資料來源：'api' (從網路爬取) 或 'local' (從本地 data 資料夾讀取)。預設為 'api'。")
     args = parser.parse_args()
+
+    # --- 步驟 0: 驗證 Token ---
+    if not validate_token():
+        print("❌ Token 驗證失敗，程式終止。")
+        return
 
     # --- 步驟 1: 根據來源獲取資料 ---
     if args.source == 'api':
