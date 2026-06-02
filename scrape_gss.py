@@ -189,20 +189,28 @@ def fetch_existing_employees_from_supabase(supabase: Client):
         supabase: Supabase 客戶端實例
 
     Returns:
-        dict: {emp_id: {'job_status': str}} 的字典，方便快速查詢員工狀態
+        dict: {emp_id: {'job_status', 'c_name', 'dep_name_act', 'tit_name'}} 的字典
     """
     print("🔍 正在從 Supabase 拉取現有員工資料...")
 
     try:
-        # 拉取所有員工資料（emp_id 和 job_status 用於比對）
-        response = supabase.table(TABLE_NAME).select("emp_id, job_status").execute()
+        response = supabase.table(TABLE_NAME).select(
+            "emp_id, job_status, c_name, dep_name_act, tit_name"
+        ).execute()
 
         if not response.data:
             print("ℹ️  Supabase 中目前沒有任何員工資料。")
             return {}
 
-        # 將資料轉換為字典，方便快速查詢員工狀態
-        existing_employees = {emp['emp_id']: {'job_status': emp.get('job_status', '')} for emp in response.data}
+        existing_employees = {
+            emp['emp_id']: {
+                'job_status': emp.get('job_status', ''),
+                'c_name': emp.get('c_name', ''),
+                'dep_name_act': emp.get('dep_name_act', ''),
+                'tit_name': emp.get('tit_name', ''),
+            }
+            for emp in response.data
+        }
         print(f"✅ 成功拉取 {len(existing_employees)} 筆現有員工資料。")
 
         return existing_employees
@@ -210,6 +218,32 @@ def fetch_existing_employees_from_supabase(supabase: Client):
     except Exception as e:
         print(f"❌ 從 Supabase 拉取資料時發生錯誤: {e}")
         return {}
+
+
+def build_change_notification(new_records: list, departed_records: list, rehired_records: list) -> str:
+    """將新增、離職、反聘員工清單組合成通知訊息。"""
+    def fmt_employee(emp: dict) -> str:
+        name = emp.get('c_name') or emp.get('emp_id', '未知')
+        emp_id = emp.get('emp_id', '')
+        dept = emp.get('dep_name_act', '')
+        title = emp.get('tit_name', '')
+        return f"- {name}（{emp_id}）| 部門：{dept} | 職稱：{title}"
+
+    lines = ["👥 **員工異動通知**"]
+
+    if new_records:
+        lines.append(f"\n✅ 新增員工（{len(new_records)} 人）")
+        lines.extend(fmt_employee(e) for e in new_records)
+
+    if rehired_records:
+        lines.append(f"\n🎉 反聘員工（{len(rehired_records)} 人）")
+        lines.extend(fmt_employee(e) for e in rehired_records)
+
+    if departed_records:
+        lines.append(f"\n👋 離職員工（{len(departed_records)} 人）")
+        lines.extend(fmt_employee(e) for e in departed_records)
+
+    return "\n".join(lines)
 
 
 def sync_employees_to_supabase(supabase: Client, transformed_data: list, departed_status='離職'):
@@ -338,6 +372,21 @@ def sync_employees_to_supabase(supabase: Client, transformed_data: list, departe
 
     if not departed_emp_ids:
         print(f"\nℹ️  沒有員工離職。")
+
+    # 6. 推送異動通知
+    api_records_by_id = {r['emp_id']: r for r in transformed_data if 'emp_id' in r}
+
+    new_records = [api_records_by_id[eid] for eid in new_emp_ids if eid in api_records_by_id]
+    rehired_records = [api_records_by_id[eid] for eid in rehired_emp_ids if eid in api_records_by_id]
+    departed_records = [
+        existing_employees[eid]
+        for eid in active_departed_emp_ids
+        if eid in existing_employees
+    ]
+
+    if new_records or rehired_records or departed_records:
+        msg = build_change_notification(new_records, departed_records, rehired_records)
+        send_notification(msg)
 
     return stats
 
