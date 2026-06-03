@@ -31,5 +31,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_KEY }}
           API_AUTH_TOKEN: ${{ secrets.API_AUTH_TOKEN }}
+          GSS_NOTIFY_WEBHOOK_URL: ${{ secrets.GSS_NOTIFY_WEBHOOK_URL }}
         run: |
           python scrape_gss.py --source api
