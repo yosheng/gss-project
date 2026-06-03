@@ -17,9 +17,9 @@ load_dotenv()
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
 API_AUTH_TOKEN = os.getenv("API_AUTH_TOKEN")
+GSS_NOTIFY_WEBHOOK_URL = os.getenv("GSS_NOTIFY_WEBHOOK_URL")
 API_URL = 'https://assistant.gss.com.tw/QuickSearchApi/index/extendrequest/index/SearchEmployee'
 TOKEN_VALIDATE_URL = 'https://assistant.gss.com.tw/QuickSearchApi/auth/tokenvalidate'
-GSS_NOTIFY_WEBHOOK_URL = os.getenv("GSS_NOTIFY_WEBHOOK_URL")
 TABLE_NAME = 'gss_employees'
 DATA_DIR = 'data'  # 用於存放 JSON 檔案的資料夾
 
