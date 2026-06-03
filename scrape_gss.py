@@ -88,7 +88,7 @@ def validate_token() -> bool:
     """驗證 API_AUTH_TOKEN 是否有效，失效時發送 webhook 通知。"""
     print("🔑 正在驗證 API Token...")
     try:
-        response = requests.get(TOKEN_VALIDATE_URL, headers=HEADERS, timeout=10)
+        response = requests.get(TOKEN_VALIDATE_URL, headers=HEADERS, timeout=30)
         response.raise_for_status()
         if response.text.strip().lower() == 'true':
             print("✅ Token 驗證成功。")
