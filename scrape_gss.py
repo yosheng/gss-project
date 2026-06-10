@@ -220,7 +220,7 @@ def fetch_existing_employees_from_supabase(supabase: Client):
         return {}
 
 
-def build_change_notification(new_records: list, departed_records: list, rehired_records: list) -> str:
+def build_change_notification(new_records: list, departed_records: list, rehired_records: list, active_count: int = 0) -> str:
     """將新增、離職、反聘員工清單組合成通知訊息。"""
     def fmt_employee(emp: dict) -> str:
         name = emp.get('c_name') or emp.get('emp_id', '未知')
@@ -242,6 +242,9 @@ def build_change_notification(new_records: list, departed_records: list, rehired
     if departed_records:
         lines.append(f"\n👋 離職員工（{len(departed_records)} 人）")
         lines.extend(fmt_employee(e) for e in departed_records)
+
+    if active_count > 0:
+        lines.append(f"\n📊 目前公司在職人員：**{active_count} 人**")
 
     return "\n".join(lines)
 
@@ -384,8 +387,9 @@ def sync_employees_to_supabase(supabase: Client, transformed_data: list, departe
         if eid in existing_employees
     ]
 
+    active_count = len(transformed_data)
     if new_records or rehired_records or departed_records:
-        msg = build_change_notification(new_records, departed_records, rehired_records)
+        msg = build_change_notification(new_records, departed_records, rehired_records, active_count)
         send_notification(msg)
 
     return stats
