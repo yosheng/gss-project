@@ -1,9 +1,9 @@
 name: Daily GSS Employee Scraper
 
 on:
-  # 每天凌晨1點執行（UTC時間，台北時間需要減8小時，所以設置為17:00 UTC = 台北時間凌晨1點）
+  # 每天清晨7點執行（UTC時間，台北時間需要減8小時，所以設置為23:00 UTC = 台北時間清晨7點）
   schedule:
-    - cron: '0 17 * * *'  # UTC 17:00 = 台北時間次日凌晨1:00
+    - cron: '0 23 * * *'  # UTC 23:00 = 台北時間次日清晨7:00
 
   # 允許手動觸發，方便測試
   workflow_dispatch:

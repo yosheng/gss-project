@@ -96,10 +96,16 @@ def validate_token() -> bool:
         print("❌ Token 已失效（API 回傳 false）。")
         send_notification("⚠️ GSS API Token 已失效，請重新取得 Token 並更新 .env 檔案。")
         return False
+    except requests.exceptions.Timeout:
+        print("⚠️  Token 驗證請求超時，跳過驗證繼續執行。")
+        return True
     except requests.exceptions.RequestException as e:
         print(f"❌ Token 驗證請求失敗: {e}")
-        from http import HTTPStatus
-        send_notification(f"⚠️ GSS API Token 驗證失敗：{HTTPStatus(e.response.status_code).phrase} {e.response.text}")
+        if e.response is not None:
+            from http import HTTPStatus
+            send_notification(f"⚠️ GSS API Token 驗證失敗：{HTTPStatus(e.response.status_code).phrase} {e.response.text}")
+        else:
+            send_notification(f"⚠️ GSS API Token 驗證失敗（無回應）：{e}")
         return False
 
 
