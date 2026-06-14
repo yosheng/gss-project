@@ -200,11 +200,26 @@ def fetch_existing_employees_from_supabase(supabase: Client):
     print("🔍 正在從 Supabase 拉取現有員工資料...")
 
     try:
-        response = supabase.table(TABLE_NAME).select(
-            "emp_id, job_status, c_name, dep_name_act, tit_name"
-        ).execute()
+        all_data = []
+        page_size = 1000
+        offset = 0
 
-        if not response.data:
+        while True:
+            response = supabase.table(TABLE_NAME).select(
+                "emp_id, job_status, c_name, dep_name_act, tit_name"
+            ).range(offset, offset + page_size - 1).execute()
+
+            if not response.data:
+                break
+
+            all_data.extend(response.data)
+
+            if len(response.data) < page_size:
+                break
+
+            offset += page_size
+
+        if not all_data:
             print("ℹ️  Supabase 中目前沒有任何員工資料。")
             return {}
 
@@ -215,7 +230,7 @@ def fetch_existing_employees_from_supabase(supabase: Client):
                 'dep_name_act': emp.get('dep_name_act', ''),
                 'tit_name': emp.get('tit_name', ''),
             }
-            for emp in response.data
+            for emp in all_data
         }
         print(f"✅ 成功拉取 {len(existing_employees)} 筆現有員工資料。")
 
