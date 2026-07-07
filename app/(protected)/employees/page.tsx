@@ -54,12 +54,24 @@ export default function EmployeesPage() {
 
   const fetchEmployees = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('gss_employees')
-        .select('*')
-        .order('emp_id', { ascending: true });
-      if (error) console.error('Error fetching employees:', error);
-      else setEmployees(data || []);
+      const PAGE_SIZE = 1000;
+      const allEmployees: Employee[] = [];
+      let from = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('gss_employees')
+          .select('*')
+          .order('emp_id', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) { console.error('Error fetching employees:', error); break; }
+        if (!data || data.length === 0) break;
+        allEmployees.push(...data);
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+
+      setEmployees(allEmployees);
     } catch (error) {
       console.error('Unexpected error:', error);
     } finally {
